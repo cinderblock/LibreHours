@@ -923,6 +923,42 @@ test("half-typed text comes back after a reload — an update, a crash — and g
   await expect(page.getByRole("dialog", { name: "Add time" })).toHaveCount(0);
 });
 
+test("a note typed and never added goes by itself half a minute after its box is left", async ({ browser }) => {
+  // Its own window on the same sign-in, so the clock it fakes stays here.
+  const own = await browser.newContext({ storageState: await ctx.storageState() });
+  try {
+    const p = await own.newPage();
+    await p.clock.install();
+    await p.goto("/");
+    const bravo = p.getByRole("group", { name: "Riverside › Bravo Site" });
+    const noteBox = bravo.getByPlaceholder("What did you do?");
+
+    // Back in time: nothing goes.
+    // Said up front, while typing, beside Add.
+    await expect(bravo.getByText(/adds itself/)).toHaveCount(0);
+    await noteBox.fill("Patched the soffit");
+    await expect(bravo.getByText("Not added yet — it adds itself 30 s after you leave this box.")).toBeVisible();
+    await noteBox.blur();
+    await expect(bravo.getByText(/Adding this note in \d+ s/)).toBeVisible();
+    await expect(bravo.getByText(/Not added yet/)).toHaveCount(0);
+    await p.clock.runFor(10_000);
+    await bravo.getByRole("button", { name: "Keep writing" }).click();
+    await expect(noteBox).toBeFocused();
+    await expect(bravo.getByText(/Adding this note in/)).toHaveCount(0);
+    await p.clock.runFor(40_000);
+    await expect(noteBox).toHaveValue("Patched the soffit");
+
+    // Left for good: it goes, and the box empties.
+    await noteBox.blur();
+    await p.clock.runFor(31_000);
+    await expect(bravo.getByText("Patched the soffit")).toBeVisible();
+    await expect(noteBox).toHaveValue("");
+    await expect(bravo.getByText(/Adding this note in/)).toHaveCount(0);
+  } finally {
+    await own.close();
+  }
+});
+
 /**
  * Last, because it replaces the browser's clock and never puts it back.
  *

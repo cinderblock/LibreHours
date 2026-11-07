@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Badge,
   Button,
   Card,
@@ -37,6 +38,7 @@ import { useFlight, whereItIs } from "./flight.tsx";
 import { JobSelect, RecentJobButtons } from "./JobPicker.tsx";
 import { type NoteView, isPendingNote } from "./model.ts";
 import { latestTimeOn, noteTimeOn } from "./note-time.ts";
+import { SEND_AFTER_MS, useSendWhenLeft } from "./send-when-left.ts";
 import { useTrackerDraft } from "./tracker-draft.ts";
 import appear from "../components/appear.module.css";
 import classes from "./notes.module.css";
@@ -504,11 +506,19 @@ function NoteBox({
     onFocused();
   }, [autoFocus, onFocused]);
 
-  async function add(event: React.FormEvent) {
+  // Typed and never added: it goes by itself a little after the box is left.
+  const { secondsLeft, keepWriting, boxProps } = useSendWhenLeft(text.trim() !== "", (leftAt) => void add(leftAt), ref);
+
+  function submit(event: React.FormEvent) {
     event.preventDefault();
+    void add(Date.now());
+  }
+
+  /** `now`: when the note was written — Add pressed, or the box left. */
+  async function add(now: number) {
     const written = text.trim();
     if (!written) return;
-    let at = Date.now();
+    let at = now;
     if (!isToday) {
       const when = noteTimeOn(model.workDate, shownTime, model.timezone, at);
       if (!when.ok) {
@@ -542,7 +552,7 @@ function NoteBox({
   }
 
   return (
-    <form onSubmit={add}>
+    <form onSubmit={submit} {...boxProps}>
       <Group gap="xs" align="start" wrap="nowrap">
         {!isToday && (
           <TimeInput
@@ -571,6 +581,28 @@ function NoteBox({
           Add
         </Button>
       </Group>
+      {/* Said up front, beside Add, so a note going by itself is never a surprise. */}
+      {text.trim() !== "" && secondsLeft === null && (
+        <Text size="xs" className={classes.autoAdd}>
+          Not added yet — it adds itself {SEND_AFTER_MS / 1000} s after you leave this box.
+        </Text>
+      )}
+      {secondsLeft !== null && (
+        <Text size="xs" className={classes.autoAdd} data-waiting role="status">
+          Adding this note in {secondsLeft} s.{" "}
+          <Anchor
+            component="button"
+            type="button"
+            size="xs"
+            // Focus landing on this link would already call it off and take
+            // the link away before its click arrives: go straight to the field.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={keepWriting}
+          >
+            Keep writing
+          </Anchor>
+        </Text>
+      )}
     </form>
   );
 }

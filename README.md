@@ -32,7 +32,8 @@ repository. All of that is deployment configuration or an admin setting.
     its jobs) or the whole organisation can require a note before a timer stops.
   - *Notes* — add the job you're on — one tap on a recent job, as starting a
     timer is — then jot what you do under it as you go (and add a second job
-    when you move to one). Tap a note to correct it, change its time or
+    when you move to one). A note typed and never added goes by itself half
+    a minute after you leave its box, stamped with when you left it. Tap a note to correct it, change its time or
     move it to another job; tap a job's start to change when it began. A day
     gone by can be written up afterwards the same way: a tapped job starts
     where the day's notes leave off, and each note says when. At the end of the day (or the
