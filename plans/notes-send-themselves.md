@@ -61,7 +61,12 @@ away. Send it after like 30 sec delay."
 ## Progress log
 
 - [x] 2026-11-06 — Built: watch + hook, note box wiring, unit tests, e2e.
-- [ ] Deploy (ops pin), with whatever ships next.
+- [x] 2026-11-06 — Callout under the Add button added (user asked for "a
+      little warning/note/callout near the button").
+- [x] 2026-11-06 — **Deployed** `df615bd`: image digest `sha256:1845fa4a…`
+      (revision label matches the commit), CI build green, container
+      healthy, and the live tracking-screen bundle contains the new callout
+      text. 508 unit, 87 e2e.
 
 ## Open questions for the user
 
