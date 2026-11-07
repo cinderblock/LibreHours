@@ -71,6 +71,7 @@ describe("migrations", () => {
       "011_one_line_per_job",
       "012_settled_notes",
       "013_bug_reports",
+      "014_person_service_item",
     ]);
     expect(first[0]!.fingerprint).toMatch(/^[0-9a-f]{16}$/);
 

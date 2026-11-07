@@ -107,8 +107,8 @@ const ENTRY_COLUMNS =
 /**
  * `WHERE` for time already recorded there whose record is known to differ
  * from what this app would send now (`remote_stale_at`, set by a migration
- * that changed what is sent): amended at the next pass, without anyone
- * taking it back and signing it off again.
+ * that changed what is sent, or by `markForAmending`): amended at the next
+ * pass, without anyone taking it back and signing it off again.
  */
 const STALE_SQL = "status = 'synced' AND remote_stale_at IS NOT NULL AND remote_txn_id IS NOT NULL AND remote_deleted_at IS NULL";
 
@@ -125,7 +125,10 @@ function sendableSql(): string {
 }
 
 interface Lookups {
-  people: Map<number, { name: string; remotePersonId: string | null; payrollItemId: string | null; categoryId: number | null }>;
+  people: Map<
+    number,
+    { name: string; remotePersonId: string | null; payrollItemId: string | null; serviceItemId: string | null; categoryId: number | null }
+  >;
   remotePeople: Map<string, { name: string; kind: string; active: boolean }>;
   items: Map<string, { kind: string; active: boolean; fullName: string }>;
   jobs: Map<string, { name: string; parentId: string | null; remoteId: string | null; remoteActive: boolean; serviceItemId: string | null; mergedInto: string | null; billable: boolean | null }>;
@@ -138,11 +141,28 @@ function lookups(): Lookups {
   return {
     people: new Map(
       db()
-        .query<{ id: number; name: string; remote_person_id: string | null; default_payroll_item_id: string | null; category_id: number | null }, []>(
-          "SELECT id, name, remote_person_id, default_payroll_item_id, category_id FROM users",
-        )
+        .query<
+          {
+            id: number;
+            name: string;
+            remote_person_id: string | null;
+            default_payroll_item_id: string | null;
+            default_service_item_id: string | null;
+            category_id: number | null;
+          },
+          []
+        >("SELECT id, name, remote_person_id, default_payroll_item_id, default_service_item_id, category_id FROM users")
         .all()
-        .map((r) => [r.id, { name: r.name, remotePersonId: r.remote_person_id, payrollItemId: r.default_payroll_item_id, categoryId: r.category_id }]),
+        .map((r) => [
+          r.id,
+          {
+            name: r.name,
+            remotePersonId: r.remote_person_id,
+            payrollItemId: r.default_payroll_item_id,
+            serviceItemId: r.default_service_item_id,
+            categoryId: r.category_id,
+          },
+        ]),
     ),
     remotePeople: new Map(
       db()
@@ -200,6 +220,21 @@ function jobChain(l: Lookups, jobId: string | null) {
   return chain;
 }
 
+/**
+ * The service item time goes as, nearest first: the entry's own; its job's,
+ * or the nearest one up the tree; the person's; the organisation's default.
+ * A job's own item wins over the person's because it says what the work was
+ * for that client; the person's is how an invoice tells whose time a line is.
+ */
+function serviceItemFor(
+  e: Pick<EntryRow, "service_item_id">,
+  chain: ReturnType<typeof jobChain>,
+  personItem: string | null,
+  l: Lookups,
+): string | null {
+  return e.service_item_id ?? chain.find((j) => j.serviceItemId)?.serviceItemId ?? personItem ?? l.defaultService ?? null;
+}
+
 /** The record an entry becomes, or why it can't be sent yet. */
 function recordFor(e: EntryRow, l: Lookups): { record: TimeRecord } | NotReady {
   const person = l.people.get(e.user_id);
@@ -230,8 +265,7 @@ function recordFor(e: EntryRow, l: Lookups): { record: TimeRecord } | NotReady {
     return { reason: `The job “${jobName}” is inactive in the accounting system.`, fix: "job" };
   }
 
-  const serviceItemId =
-    e.service_item_id ?? chain.find((j) => j.serviceItemId)?.serviceItemId ?? l.defaultService ?? null;
+  const serviceItemId = serviceItemFor(e, chain, person.serviceItemId, l);
   if (serviceItemId) {
     const item = l.items.get(serviceItemId);
     if (!item?.active) return { reason: "Its service item is no longer active in the accounting system.", fix: "item" };
@@ -501,6 +535,63 @@ export function recheckDuplicates(): number {
     .run().changes;
 }
 
+// ---- amending time already sent -------------------------------------------------------
+//
+// When a setting changes what this app would send for time it has already
+// sent, the records there can be brought up to date without anyone taking
+// the time back. They are looked at first: a record already on an invoice, or
+// changed in the accounting system since this app sent it, is left as it is
+// (`stale_skipped`) and shown to admins, because rewriting an invoiced line or
+// someone's hand edit is worse than a stale one. One deleted there stays
+// deleted: someone removed it on purpose.
+
+type Skipped = { at: number; why: "billed" | "edited" | "deleted" };
+
+/**
+ * Mark sent entries to be amended. Each is looked at in the accounting system
+ * first (`sync_uncertain` with its id); `finishWork` decides there whether it
+ * is still this app's to change.
+ */
+function markForAmending(ids: string[], now: number): void {
+  const mark = db().query(
+    `UPDATE time_entries SET remote_stale_at = ?, sync_uncertain = json_object('txnId', remote_txn_id), stale_skipped = NULL,
+            sync_next_at = NULL
+      WHERE id = ? AND status = 'synced' AND remote_txn_id IS NOT NULL AND remote_deleted_at IS NULL AND deleted_at IS NULL`,
+  );
+  for (const id of ids) mark.run(now, id);
+}
+
+/**
+ * After a person's service item changed from `before`: mark their sent time
+ * whose item came from the person (or the default behind it) to be amended
+ * with the new one. Time on a job with its own item, or with an item of its
+ * own, isn't affected. Returns how many entries were marked.
+ */
+export function amendPersonsSentTime(args: { userId: number; before: string | null; now?: number }): number {
+  const now = args.now ?? Date.now();
+  const l = lookups();
+  const person = l.people.get(args.userId);
+  if (!person) return 0;
+  const was = args.before ?? l.defaultService;
+  const is = person.serviceItemId ?? l.defaultService;
+  if (was === is) return 0;
+  const rows = db()
+    .query<EntryRow, [number]>(
+      `SELECT ${ENTRY_COLUMNS} FROM time_entries
+        WHERE user_id = ? AND status = 'synced' AND remote_txn_id IS NOT NULL AND remote_deleted_at IS NULL
+          AND deleted_at IS NULL AND service_item_id IS NULL`,
+    )
+    .all(args.userId);
+  const ids = rows.filter((r) => !jobChain(l, r.job_id).some((j) => j.serviceItemId)).map((r) => r.id);
+  db().transaction(() => markForAmending(ids, now))();
+  return ids.length;
+}
+
+/** Stop showing the sent time that was left as it is. */
+export function dismissSkipped(): number {
+  return db().query("UPDATE time_entries SET stale_skipped = NULL WHERE stale_skipped IS NOT NULL").run().changes;
+}
+
 // ---- the work list ------------------------------------------------------------------
 
 type Uncertain = { txnDate: string; personRemoteId: string } | { txnId: string };
@@ -730,6 +821,28 @@ export function finishWork(backend: string, work: Work, performed: Performed, no
             ? r.txnId === askedId
             : sent != null && sameAsSent(r, sent.shape) && !sent.notMine.has(r.txnId) && standsFor(r.txnId) === 0,
         );
+        // Looked at before amending sent time (`markForAmending`): only a
+        // record nobody has invoiced or changed there since it was sent is
+        // still this app's to rewrite.
+        const amending = byId
+          ? db()
+              .query<{ edit: string | null }, [string]>(
+                "SELECT remote_edit_sequence AS edit FROM time_entries WHERE id = ? AND status = 'synced' AND remote_stale_at IS NOT NULL",
+              )
+              .get(work.id)
+          : null;
+        if (amending && (!match || match.billed || match.editSequence !== amending.edit)) {
+          const skipped: Skipped = { at: now, why: !match ? "deleted" : match.billed ? "billed" : "edited" };
+          db()
+            .query(
+              `UPDATE time_entries SET remote_stale_at = NULL, sync_uncertain = NULL, stale_skipped = ?,
+                      remote_deleted_at = ?, sync_error = NULL, sync_failures = 0, sync_next_at = NULL
+                WHERE id = ?`,
+            )
+            .run(JSON.stringify(skipped), match ? null : now, work.id);
+          audit({ actorUserId: null, entity: "entry", entityId: work.id, action: "amend_skipped", after: skipped, at: now });
+          return;
+        }
         if (match) {
           // Adopt it; the next pass amends it to match exactly.
           db()
@@ -768,7 +881,7 @@ export function finishWork(backend: string, work: Work, performed: Performed, no
             .query(
               `UPDATE time_entries SET status = 'synced', remote_txn_id = ?, remote_edit_sequence = ?, synced_at = ?,
                       remote_deleted_at = NULL, sync_uncertain = NULL, sync_error = NULL, sync_failures = 0,
-                      sync_next_at = NULL, remote_stale_at = NULL
+                      sync_next_at = NULL, remote_stale_at = NULL, stale_skipped = NULL
                 WHERE id = ?`,
             )
             .run(result.txnId, result.editSequence, now, work.id);
@@ -840,6 +953,8 @@ export interface SyncOverview {
     found: { txnId: string; minutes: number; notes: string }[];
   }[];
   sent: number;
+  /** Sent time that was to be amended, left as it is in the accounting system instead (see `markForAmending`). */
+  skipped: { entryId: string; userId: number; person: string; workDate: string; minutes: number; why: Skipped["why"] }[];
   jobsToCreate: { jobId: string; name: string; error: string | null }[];
   recent: { at: number; work: string; ok: boolean; error: string | null }[];
 }
@@ -860,6 +975,20 @@ export function syncOverview(now: number = Date.now()): SyncOverview {
     reopened: [],
     duplicates: [],
     sent: db().query<{ n: number }, []>("SELECT COUNT(*) AS n FROM time_entries WHERE status = 'synced' AND deleted_at IS NULL").get()!.n,
+    skipped: db()
+      .query<{ id: string; user_id: number; work_date: string; duration_seconds: number; stale_skipped: string }, []>(
+        `SELECT id, user_id, work_date, duration_seconds, stale_skipped FROM time_entries
+          WHERE stale_skipped IS NOT NULL AND deleted_at IS NULL ORDER BY work_date, id`,
+      )
+      .all()
+      .map((r) => ({
+        entryId: r.id,
+        userId: r.user_id,
+        person: l.people.get(r.user_id)?.name ?? "Someone",
+        workDate: r.work_date,
+        minutes: Math.round(r.duration_seconds / 60),
+        why: (JSON.parse(r.stale_skipped) as Skipped).why,
+      })),
     jobsToCreate: db()
       .query<{ id: string; name: string; sync_error: string | null }, []>(
         `SELECT id, name, sync_error FROM jobs

@@ -142,8 +142,8 @@ describe("parsing responses", () => {
       ok: true,
       type: "time.found",
       records: [
-        { txnId: "A", editSequence: "1", minutes: 120, notes: "Framing [ref 111111111111]", jobRemoteId: null },
-        { txnId: "B", editSequence: "2", minutes: 30, notes: "", jobRemoteId: "C-1" },
+        { txnId: "A", editSequence: "1", minutes: 120, notes: "Framing [ref 111111111111]", jobRemoteId: null, billed: false },
+        { txnId: "B", editSequence: "2", minutes: 30, notes: "", jobRemoteId: "C-1", billed: false },
       ],
     });
   });

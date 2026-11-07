@@ -21,9 +21,17 @@ import {
   setDefaultItems,
   setJobServiceItem,
   setPersonPayrollItem,
+  setPersonServiceItem,
 } from "../../src/remote-lists.ts";
 import { defaultPayrollItemId, defaultServiceItemId, syncState } from "../../src/settings.ts";
-import { recheckDuplicates, resolveDuplicate, retryFailedNow, syncOverview } from "../../src/sync.ts";
+import {
+  amendPersonsSentTime,
+  dismissSkipped,
+  recheckDuplicates,
+  resolveDuplicate,
+  retryFailedNow,
+  syncOverview,
+} from "../../src/sync.ts";
 import { runSync } from "../../src/sync-worker.ts";
 import { formatDurationHuman, formatWorkDate } from "../../src/time.ts";
 import { UserInputError, listUsers } from "../../src/users.ts";
@@ -105,6 +113,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           remotePersonId: link?.remotePersonId ?? null,
           isEmployee: remote?.kind === "employee",
           payrollItemId: link?.payrollItemId ?? null,
+          serviceItemId: link?.serviceItemId ?? null,
           suggestion: remote ? null : (people.find((p) => p.active && p.name.toLowerCase() === u.name.toLowerCase())?.remoteId ?? null),
         };
       }),
@@ -188,6 +197,19 @@ export async function action({ request, context }: Route.ActionArgs) {
     "person-payroll": (form) => {
       setPersonPayrollItem({ userId: intField(form, "userId"), itemId: item(form), actorUserId });
       return { ok: true, message: "Payroll item saved." };
+    },
+    "person-service": async (form) => {
+      const userId = intField(form, "userId");
+      const { before } = setPersonServiceItem({ userId, itemId: item(form), actorUserId });
+      const n = amendPersonsSentTime({ userId, before });
+      if (n === 0) return { ok: true, message: "Service item saved." };
+      return summary(
+        `Service item saved. ${n} ${n === 1 ? "record" : "records"} already in QuickBooks will be updated to match, except any already invoiced or changed there.`,
+      );
+    },
+    "skipped-dismiss": () => {
+      dismissSkipped();
+      return { ok: true, message: "Cleared." };
     },
     "category-payroll": (form) => {
       setCategoryPayrollItem({ categoryId: intField(form, "categoryId"), itemId: item(form), actorUserId });
@@ -494,6 +516,8 @@ function Queue({ data }: { data: Data }) {
         </Alert>
       )}
 
+      {overview.skipped.length > 0 && <Skipped skipped={overview.skipped} />}
+
       {overview.jobsToCreate.length > 0 && (
         <Alert color={overview.jobsToCreate.some((j) => j.error) ? "red" : "blue"} title="Jobs to create in QuickBooks">
           <Stack gap={4}>
@@ -506,6 +530,49 @@ function Queue({ data }: { data: Data }) {
         </Alert>
       )}
     </Stack>
+  );
+}
+
+const SKIPPED_WHY = {
+  billed: "already invoiced",
+  edited: "changed in QuickBooks since it was sent",
+  deleted: "deleted in QuickBooks",
+} as const;
+
+/** Sent time a settings change would have amended, left as it is in QuickBooks instead. */
+function Skipped({ skipped }: { skipped: Data["overview"]["skipped"] }) {
+  const dismiss = useFetcher<typeof action>();
+  useActionFeedback(dismiss.data);
+  return (
+    <Alert color="blue" title="Left as they are in QuickBooks">
+      <Stack gap="xs">
+        <Text size="sm">
+          A change here would have updated {skipped.length === 1 ? "this record" : "these records"} in QuickBooks, but{" "}
+          {skipped.length === 1 ? "it was" : "they were"} left alone. Change {skipped.length === 1 ? "it" : "them"} there by
+          hand if needed.
+        </Text>
+        <List size="sm">
+          {skipped.map((s) => (
+            <List.Item key={s.entryId}>
+              <Anchor component={Link} to={`/admin/people/${s.userId}/time/${s.workDate}`} size="sm">
+                {s.person}, {formatWorkDate(s.workDate)}
+              </Anchor>{" "}
+              ({formatDurationHuman(s.minutes * 60)}): {SKIPPED_WHY[s.why]}
+            </List.Item>
+          ))}
+        </List>
+        <Group>
+          <Button
+            size="compact-sm"
+            variant="light"
+            loading={dismiss.state !== "idle"}
+            onClick={() => dismiss.submit({ intent: "skipped-dismiss" }, { method: "post" })}
+          >
+            Dismiss
+          </Button>
+        </Group>
+      </Stack>
+    </Alert>
   );
 }
 
@@ -528,8 +595,9 @@ function PeopleSection({ data }: { data: Data }) {
     <Stack gap="sm" id="people">
       <Title order={3}>People</Title>
       <Text size="sm" c="dimmed">
-        Each person's time goes to QuickBooks under the name linked here. Employees can also have a payroll item; without
-        one, their category's or the default below is used.
+        Each person's time goes to QuickBooks under the name linked here. A service item of their own (one per person,
+        say) tells an invoice whose time each line is; it's used wherever a job has none of its own. Employees can also
+        have a payroll item; without one, their category's or the default below is used.
       </Text>
       {noLists && <Text size="sm">Fetch the lists from QuickBooks first.</Text>}
       <Stack gap="xs">
@@ -543,15 +611,17 @@ function PeopleSection({ data }: { data: Data }) {
 
 function PersonRow({ user, data, disabled }: { user: Data["users"][number]; data: Data; disabled: boolean }) {
   const link = useFetcher<typeof action>();
+  const service = useFetcher<typeof action>();
   const payroll = useFetcher<typeof action>();
   useActionFeedback(link.data);
+  useActionFeedback(service.data);
   useActionFeedback(payroll.data);
   const suggested = user.suggestion
     ? data.peopleGroups.flatMap((g) => g.items).find((i) => i.value === user.suggestion)?.label
     : null;
   return (
     <Card withBorder padding="sm">
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm" verticalSpacing="xs">
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="sm" verticalSpacing="xs">
         <Stack gap={0} justify="center">
           <Text fw={500}>{user.name}</Text>
           {suggested && (
@@ -575,6 +645,16 @@ function PersonRow({ user, data, disabled }: { user: Data["users"][number]; data
           clearable
           disabled={disabled || link.state !== "idle"}
           onChange={(v) => link.submit({ intent: "link-person", userId: String(user.id), remoteId: v ?? "" }, { method: "post" })}
+        />
+        <Select
+          aria-label={`Service item for ${user.name}`}
+          placeholder="Job's or default"
+          data={data.serviceItems}
+          value={user.serviceItemId}
+          searchable
+          clearable
+          disabled={disabled || service.state !== "idle"}
+          onChange={(v) => service.submit({ intent: "person-service", userId: String(user.id), itemId: v ?? "" }, { method: "post" })}
         />
         {user.isEmployee ? (
           <Select
@@ -721,7 +801,7 @@ function ItemsSection({ data }: { data: Data }) {
       <Title order={3}>Items</Title>
       <Text size="sm" c="dimmed">
         A service item says what the work was, and makes the time billable to the job. A job's own service item is used
-        for it and its sub-jobs; otherwise the default. Time on a job marked not billable on the{" "}
+        for it and its sub-jobs; otherwise the person's own (under People above); otherwise the default. Time on a job marked not billable on the{" "}
         <Anchor component={Link} to="/admin/jobs">
           Jobs page
         </Anchor>{" "}

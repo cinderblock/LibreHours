@@ -82,6 +82,8 @@ export interface FoundTime {
   minutes: number;
   /** The job it is booked to there, if any. */
   jobRemoteId: string | null;
+  /** Already on an invoice (QuickBooks' `HasBeenBilled`): the record is history, not ours to amend unasked. */
+  billed: boolean;
 }
 
 export interface PulledLists {

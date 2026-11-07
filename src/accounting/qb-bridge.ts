@@ -98,6 +98,7 @@ function foundOf(ret: Json): FoundTime {
     notes: str(ret.Notes),
     minutes: parseQbDuration(str(ret.Duration)),
     jobRemoteId: listId(ret.CustomerRef),
+    billed: str(ret.BillableStatus) === "HasBeenBilled",
   };
 }
 

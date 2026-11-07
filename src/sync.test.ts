@@ -19,9 +19,20 @@ import {
   setCategoryPayrollItem,
   setJobServiceItem,
   setPersonPayrollItem,
+  setPersonServiceItem,
 } from "./remote-lists.ts";
 import { setDefaultPayrollItemId, setDefaultServiceItemId, setRequireApproval, syncState } from "./settings.ts";
-import { PULL_EVERY_MS, heldEntries, listWork, recheckDuplicates, resolveDuplicate, retryFailedNow, syncOverview } from "./sync.ts";
+import {
+  PULL_EVERY_MS,
+  amendPersonsSentTime,
+  dismissSkipped,
+  heldEntries,
+  listWork,
+  recheckDuplicates,
+  resolveDuplicate,
+  retryFailedNow,
+  syncOverview,
+} from "./sync.ts";
 import { runSync } from "./sync-worker.ts";
 import { fakeBridgeFetch } from "./testing/fake-bridge.ts";
 import { type FakeQuickBooks, sampleCompany } from "./testing/fake-quickbooks.ts";
@@ -259,6 +270,26 @@ describe("sending time", () => {
     approveEntries({ userId: alice, entryIds: [c], actorUserId: admin });
     await sync();
     expect(byMinutes(15).payrollItem).toBe("W-HOURLY");
+  });
+
+  test("a person's own service item: used where the job has none, after the job's and before the default", async () => {
+    await connected();
+    qb.customers.push({ id: "C-ACME-3", name: "Phase 3", parent: "C-ACME", active: true });
+    now += MIN;
+    requestPull(now);
+    await sync();
+    setPersonServiceItem({ userId: alice, itemId: "I-DESIGN", actorUserId: admin });
+    setJobServiceItem({ jobId: jobByRemote("C-ACME-3").id, itemId: "I-LABOR", actorUserId: admin });
+    work(alice, jobByRemote("C-ACME-2").id, 30, "Hers");
+    work(alice, jobByRemote("C-ACME-3").id, 45, "The job's");
+    work(bob, jobByRemote("C-ACME-2").id, 60, "His");
+    approveEntries({ userId: alice, from: DAY, to: DAY, actorUserId: admin });
+    approveEntries({ userId: bob, from: DAY, to: DAY, actorUserId: admin });
+    await sync();
+    const byNote = (notes: string) => qb.summary().find((r) => r.notes === notes)!;
+    expect(byNote("Hers")).toMatchObject({ item: "I-DESIGN", billable: "Billable" });
+    expect(byNote("The job's")).toMatchObject({ item: "I-LABOR" });
+    expect(byNote("His")).toMatchObject({ item: "I-LABOR" }); // the default
   });
 
   test("with no service item anywhere, time goes as not billable", async () => {
@@ -837,6 +868,62 @@ describe("corrections and failures", () => {
     expect(qb.records[0]!.notes).toBe("Framing");
     expect(getEntry(id)!.status).toBe("synced");
     expect(listWork(now)).toEqual([]);
+  });
+
+  test("a person's new service item amends their sent time, except what's invoiced, changed or deleted there", async () => {
+    await connected();
+    qb.customers.push({ id: "C-ACME-3", name: "Phase 3", parent: "C-ACME", active: true });
+    now += MIN;
+    requestPull(now);
+    await sync();
+    setJobServiceItem({ jobId: jobByRemote("C-ACME-3").id, itemId: "I-LABOR", actorUserId: admin });
+    const day = (n: number) => NINE + n * 24 * 60 * MIN;
+    const plain = work(alice, jobByRemote("C-ACME-2").id, 60, "Plain", day(0));
+    const invoiced = work(alice, jobByRemote("C-ACME-2").id, 60, "Invoiced", day(1));
+    const edited = work(alice, jobByRemote("C-ACME-2").id, 60, "Edited", day(2));
+    const gone = work(alice, jobByRemote("C-ACME-2").id, 60, "Gone", day(3));
+    const ownJob = work(alice, jobByRemote("C-ACME-3").id, 60, "Own job", day(4));
+    const bobs = work(bob, jobByRemote("C-ACME-2").id, 60, "Bob's", day(0));
+    approveEntries({ userId: alice, from: DAY, to: "2026-09-20", actorUserId: admin });
+    approveEntries({ userId: bob, from: DAY, to: DAY, actorUserId: admin });
+    await sync();
+    expect(qb.records).toHaveLength(6);
+    const rec = (notes: string) => qb.records.find((r) => r.notes === notes);
+
+    // At the desk: one put on an invoice, one edited, one deleted.
+    rec("Invoiced")!.billable = "HasBeenBilled";
+    qb.touch(rec("Invoiced")!.txnId);
+    qb.touch(rec("Edited")!.txnId);
+    qb.records.splice(qb.records.indexOf(rec("Gone")!), 1);
+
+    const { before } = setPersonServiceItem({ userId: alice, itemId: "I-DESIGN", actorUserId: admin });
+    expect(before).toBeNull();
+    // Her four on a job without its own item; not the job's own, not Bob's.
+    expect(amendPersonsSentTime({ userId: alice, before, now })).toBe(4);
+    // Each is looked at before anything is changed.
+    expect(listWork(now).map((w) => w.kind)).toEqual(["entry.find", "entry.find", "entry.find", "entry.find"]);
+    await sync();
+
+    expect(rec("Plain")).toMatchObject({ item: "I-DESIGN", billable: "Billable" });
+    expect(rec("Invoiced")).toMatchObject({ item: "I-LABOR", billable: "HasBeenBilled" });
+    expect(rec("Edited")).toMatchObject({ item: "I-LABOR" });
+    expect(rec("Gone")).toBeUndefined(); // not added back
+    expect(rec("Own job")).toMatchObject({ item: "I-LABOR" });
+    expect(rec("Bob's")).toMatchObject({ item: "I-LABOR" });
+    expect(qb.records).toHaveLength(5);
+    for (const id of [plain, invoiced, edited, gone, ownJob, bobs]) expect(getEntry(id)!.status).toBe("synced");
+    expect(listWork(now)).toEqual([]);
+
+    const skipped = syncOverview(now).skipped;
+    expect(skipped.map((s) => [s.entryId, s.why])).toEqual([
+      [invoiced, "billed"],
+      [edited, "edited"],
+      [gone, "deleted"],
+    ]);
+    // Setting it to the same again changes nothing.
+    expect(amendPersonsSentTime({ userId: alice, before: "I-DESIGN", now })).toBe(0);
+    expect(dismissSkipped()).toBe(3);
+    expect(syncOverview(now).skipped).toEqual([]);
   });
 
   test("unreachable before anything was sent: found missing, then sent once", async () => {

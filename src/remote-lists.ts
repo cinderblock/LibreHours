@@ -199,15 +199,45 @@ export interface PersonLink {
   userId: number;
   remotePersonId: string | null;
   payrollItemId: string | null;
+  serviceItemId: string | null;
 }
 
 export function personLinks(): PersonLink[] {
   return db()
-    .query<{ id: number; remote_person_id: string | null; default_payroll_item_id: string | null }, []>(
-      "SELECT id, remote_person_id, default_payroll_item_id FROM users",
-    )
+    .query<
+      { id: number; remote_person_id: string | null; default_payroll_item_id: string | null; default_service_item_id: string | null },
+      []
+    >("SELECT id, remote_person_id, default_payroll_item_id, default_service_item_id FROM users")
     .all()
-    .map((r) => ({ userId: r.id, remotePersonId: r.remote_person_id, payrollItemId: r.default_payroll_item_id }));
+    .map((r) => ({
+      userId: r.id,
+      remotePersonId: r.remote_person_id,
+      payrollItemId: r.default_payroll_item_id,
+      serviceItemId: r.default_service_item_id,
+    }));
+}
+
+/**
+ * A person's own service item: what their time on a job without one of its
+ * own goes as, ahead of the default. Returns the item it replaced, so the
+ * caller can have time already sent amended (see `amendPersonsSentTime`).
+ */
+export function setPersonServiceItem(args: { userId: number; itemId: string | null; actorUserId: number }): { before: string | null } {
+  const user = mustGetUser(args.userId);
+  checkItem(args.itemId, "service");
+  const before =
+    db().query<{ item: string | null }, [number]>("SELECT default_service_item_id AS item FROM users WHERE id = ?").get(user.id)?.item ??
+    null;
+  db().query("UPDATE users SET default_service_item_id = ?, updated_at = ? WHERE id = ?").run(args.itemId, Date.now(), user.id);
+  audit({
+    actorUserId: args.actorUserId,
+    entity: "user",
+    entityId: user.id,
+    action: "service_item",
+    before: { itemId: before },
+    after: { itemId: args.itemId },
+  });
+  return { before };
 }
 
 export function setPersonPayrollItem(args: { userId: number; itemId: string | null; actorUserId: number }): void {

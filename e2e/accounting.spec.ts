@@ -200,6 +200,18 @@ test("a job made here is linked to the real one, and its time follows", async ()
   await expect(page.getByText("in accounting")).toHaveCount(2);
 });
 
+test("a person's own service item: their time already sent is updated to match, and back", async () => {
+  await page.goto("/admin/accounting");
+  const item = page.getByRole("combobox", { name: "Service item for Ivy Integrator" });
+  await choose(item, "Labor › Design");
+  await expect(toast(/2 records already in QuickBooks will be updated/).first()).toBeVisible();
+  await expect.poll(async () => (await bridge()).records.map((r) => r.item)).toEqual(["I-DESIGN", "I-DESIGN"]);
+
+  // Back to what the default gives: amended again.
+  await choose(item, "Labor");
+  await expect.poll(async () => (await bridge()).records.map((r) => r.item)).toEqual(["I-LABOR", "I-LABOR"]);
+});
+
 test("a job made here can be created in QuickBooks instead", async () => {
   await page.goto("/admin/jobs");
   const acme = page.getByRole("group", { name: "Acme", exact: true });

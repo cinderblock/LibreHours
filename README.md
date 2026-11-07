@@ -174,6 +174,11 @@ repository. All of that is deployment configuration or an admin setting.
   - **A job, or a whole customer, can be not billable** (Jobs page). Its time is
     still sent, with its service item, marked not billable — for internal work
     that is tracked but never invoiced.
+  - **A person can have their own service item** (Accounting page), used wherever
+    a job has none of its own. With one item per person, an invoice says whose
+    time each line is. Changing it updates their time already in QuickBooks to
+    match — except records already invoiced, changed at the desk since they were
+    sent, or deleted there, which are left as they are and listed.
 
 ## Stack
 

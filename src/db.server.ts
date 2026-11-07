@@ -721,6 +721,21 @@ const migrations: Migration[] = [
         CREATE INDEX idx_client_error_events_group ON client_error_events(group_id, received_at);
     `,
   },
+  {
+    name: "014_person_service_item",
+    sql: `
+        -- A person's own service item: used for their time on any job that
+        -- has none of its own, ahead of the organisation's default. One item
+        -- per person is how an invoice says who did the work. See src/sync.ts.
+        ALTER TABLE users ADD COLUMN default_service_item_id TEXT;
+
+        -- Time already sent, marked to be amended (remote_stale_at), that was
+        -- left as it is in the accounting system instead: already invoiced
+        -- there, or changed there since it was sent. JSON { at, why }. Shown
+        -- to admins until dismissed or the entry is sent again.
+        ALTER TABLE time_entries ADD COLUMN stale_skipped TEXT;
+    `,
+  },
 ];
 
 /**
