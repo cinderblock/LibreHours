@@ -13,7 +13,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   if (accountingBackendOrError().backend?.kind !== "qb-webconnector") {
     throw data("The Web Connector isn't the configured accounting backend.", { status: 404 });
   }
-  const slug = branding().name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "time-tracker";
+  const slug = branding().name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "librehours";
   return new Response(qwcFile(webConnectorIds()), {
     headers: {
       "Content-Type": "application/xml; charset=utf-8",

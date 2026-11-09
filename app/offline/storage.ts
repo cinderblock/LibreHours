@@ -32,6 +32,9 @@ export interface OutboxStore {
   remove(seqs: number[]): Promise<void>;
 }
 
+// From when the app was called time-tracker. Kept: a new name would orphan
+// every device's outbox, changes not yet sent included. The `tt-` keys below
+// stay for the same reason.
 const DB_NAME = "time-tracker";
 const DB_VERSION = 1;
 

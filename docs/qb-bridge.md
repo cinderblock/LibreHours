@@ -38,7 +38,7 @@ folder:
 
 ```sh
 # bash or PowerShell 7
-uv run python -m qb_bridge.cli create-key "Time tracker" --permissions '{"*": ["read"], "TimeTracking": ["read", "write"], "Customer": ["read", "insert"]}'
+uv run python -m qb_bridge.cli create-key "LibreHours" --permissions '{"*": ["read"], "TimeTracking": ["read", "write"], "Customer": ["read", "insert"]}'
 ```
 
 Windows PowerShell 5.1 (the one Windows 10 and 11 start by default) and
@@ -46,7 +46,7 @@ Windows PowerShell 5.1 (the one Windows 10 and 11 start by default) and
 without JSON on the command line:
 
 ```powershell
-.venv\Scripts\python.exe -c "from qb_bridge.cli import create_key; create_key('Time tracker', {'*': ['read'], 'TimeTracking': ['read', 'write'], 'Customer': ['read', 'insert']})"
+.venv\Scripts\python.exe -c "from qb_bridge.cli import create_key; create_key('LibreHours', {'*': ['read'], 'TimeTracking': ['read', 'write'], 'Customer': ['read', 'insert']})"
 ```
 
 It prints the key once. Set it as `QB_BRIDGE_API_KEY`.

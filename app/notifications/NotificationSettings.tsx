@@ -69,7 +69,7 @@ function supportMessage(support: PushSupport): string | null {
     case "ready":
       return null;
     case "ios-needs-install":
-      return "On iPhone and iPad, notifications only work in the app on your Home Screen (iOS 16.4 or later). In Safari, tap Share → Add to Home Screen, open Time Tracker from there, and turn them on here.";
+      return "On iPhone and iPad, notifications only work in the app on your Home Screen (iOS 16.4 or later). In Safari, tap Share → Add to Home Screen, open the app from there, and turn them on here.";
     case "unsupported":
       return "This browser can't receive notifications.";
     case "denied":

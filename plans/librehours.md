@@ -1,4 +1,4 @@
-# Time Tracker — plan
+# LibreHours — plan
 
 ## Goal
 
@@ -17,10 +17,10 @@ deployer, not here.
 
 | Thing | Value |
 | --- | --- |
-| Repo | `cinderblock/time-tracker` (public), primary branch `master` |
+| Repo | `cinderblock/LibreHours` (public; was `cinderblock/time-tracker` until 2026-11-09), primary branch `master` |
 | Runtime | Bun 1.4.2+ (`bun.lock`), React Router 8 SSR, SQLite (`bun:sqlite`) |
 | Accounting | The [QB Bridge](https://github.com/cinderblock/quickbooks-desktop-sdk-bridge) (commit `599e5d1` or later), or the QuickBooks Web Connector |
-| Deployment | CI publishes `ghcr.io/cinderblock/time-tracker:<sha>` and `:latest`, labelled with the commit. Deploying is the deployer's: they pin a digest and run it behind a reverse proxy (the container binds to `127.0.0.1`) |
+| Deployment | CI publishes `ghcr.io/cinderblock/librehours:<sha>` (`ghcr.io/cinderblock/time-tracker` before the rename) and `:latest`, labelled with the commit. Deploying is the deployer's: they pin a digest and run it behind a reverse proxy (the container binds to `127.0.0.1`) |
 | Deployment notes | Kept privately by the deployer |
 
 ## Decisions already made (don't re-ask)

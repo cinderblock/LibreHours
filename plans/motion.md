@@ -122,7 +122,7 @@ Two things, one subject.
 - 2026-09-22 — **Deployed** at `ba76b12` (image `sha256:4fd1a29d…`). CI was
   red twice on the way, neither
   time for anything in this plan: a real note-box race the app had (see
-  `plans/time-tracker.md`) and an exact-float layout assertion.
+  `plans/librehours.md`) and an exact-float layout assertion.
 
 ## Open questions for the user
 

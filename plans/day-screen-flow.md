@@ -14,7 +14,7 @@ the left side *becomes* the right side. Two changes:
 ## Environment / context
 
 - Repo `cinderblock/time-tracker`, primary branch `master`. Same checks as
-  `plans/time-tracker.md`: `bun run typecheck`, `bun test src/ app/`,
+  `plans/librehours.md`: `bun run typecheck`, `bun test src/ app/`,
   `bunx playwright test`.
 - The screen is `app/tracker/TrackerScreen.tsx`: a Mantine `Grid`, two
   `Grid.Col span={{ base: 12, md: 6 }}`. Left holds `TimerPanel` and/or

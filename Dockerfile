@@ -22,7 +22,7 @@ FROM oven/bun:1
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV DATABASE_PATH=/data/time-tracker.db
+ENV DATABASE_PATH=/data/librehours.db
 
 # tzdata provides /usr/share/zoneinfo. Without it TZ silently falls back to UTC
 # and the setting becomes a no-op — which in this app means evening work gets

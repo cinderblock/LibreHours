@@ -15,7 +15,7 @@ beforeEach(() => {
 describe("branding", () => {
   test("starts as the deployment's defaults", () => {
     expect(branding()).toEqual(brandingDefaults());
-    expect(branding()).toEqual({ name: "Time Tracker", shortName: "Time", themeColor: "#1c7ed6" });
+    expect(branding()).toEqual({ name: "LibreHours", shortName: "LibreHours", themeColor: "#1c7ed6" });
   });
 
   test("admins change it; blank goes back to the default; each change is audited", () => {

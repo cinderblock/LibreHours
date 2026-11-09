@@ -101,7 +101,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 
-const FALLBACK_NAME = "Time Tracker";
+const FALLBACK_NAME = "LibreHours";
 const FALLBACK_THEME_COLOR = "#1c7ed6";
 
 export function Layout({ children }: { children: React.ReactNode }) {

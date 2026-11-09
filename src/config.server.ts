@@ -1,5 +1,7 @@
 import { createECDH } from "node:crypto";
 
+import { resolveDatabasePath } from "./database-path.ts";
+
 /**
  * Runtime configuration, read once from the environment.
  *
@@ -7,8 +9,16 @@ import { createECDH } from "node:crypto";
  * generic self-hostable time tracker, and every company name, hostname, colour
  * and credential arrives from the environment. If you find yourself wanting to
  * write an organisation's name in here, it belongs in that deployment's env
- * file instead. See plans/time-tracker.md ("Things not to do").
+ * file instead. See plans/librehours.md ("Things not to do").
  */
+
+const database = resolveDatabasePath(process.env.DATABASE_PATH);
+if (database.legacy) {
+  console.warn(
+    `Using ${database.path}, the database from before this app was LibreHours. ` +
+      `Rename it to librehours.db, or set DATABASE_PATH to it, to stop seeing this.`,
+  );
+}
 
 function required(name: string): string {
   const value = process.env[name];
@@ -109,8 +119,8 @@ export const config = {
    * deployed for any organisation. Defaults are generic on purpose.
    */
   branding: {
-    name: process.env.APP_NAME ?? "Time Tracker",
-    shortName: process.env.APP_SHORT_NAME ?? "Time",
+    name: process.env.APP_NAME ?? "LibreHours",
+    shortName: process.env.APP_SHORT_NAME ?? "LibreHours",
     /** Any CSS colour; drives the Mantine theme and the PWA manifest. */
     themeColor: process.env.APP_THEME_COLOR ?? "#1c7ed6",
   },
@@ -123,7 +133,7 @@ export const config = {
   publicBaseUrl: publicOrigin(required("PUBLIC_BASE_URL")),
 
   /** Where the SQLite file lives. The container bind-mounts /data. */
-  databasePath: process.env.DATABASE_PATH ?? "./data/time-tracker.db",
+  databasePath: database.path,
 
   port: Number(process.env.PORT ?? 3000),
 
@@ -153,7 +163,7 @@ export const config = {
      */
     syncEverySeconds: nonNegativeInt("ACCOUNTING_SYNC_EVERY_SECONDS", 60),
     /** Credentials the QuickBooks Web Connector authenticates with. */
-    webConnectorUsername: process.env.QBWC_USERNAME || "time-tracker",
+    webConnectorUsername: process.env.QBWC_USERNAME || "librehours",
     webConnectorPassword: process.env.QBWC_PASSWORD || null,
   },
 

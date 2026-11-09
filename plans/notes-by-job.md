@@ -50,7 +50,7 @@ a job, roll the whole day up" layout from `plans/jobs-under-customers.md`.
    touch at first, to give the note the row's full width; that traded the only
    clue a note can be edited for ~22px, and the width wasn't worth it.) There
    is no text "Edit" button to squeeze — see the clipping finding in
-   `plans/time-tracker.md`.
+   `plans/librehours.md`.
 8. **Recent jobs are buttons above the "add a job" picker** (2026-09-21, the
    user's ask): the same `RecentJobButtons` row that starts and switches a
    timer, so getting onto a job is one tap in either mode instead of a search.

@@ -151,7 +151,7 @@ export function handleWebConnectorCall(xml: string, now: number = Date.now()): S
 
   switch (method) {
     case "serverVersion":
-      return { body: reply(method, xmlText(`${branding().name} (time tracker)`)) };
+      return { body: reply(method, xmlText(`${branding().name} (LibreHours)`)) };
 
     case "clientVersion":
       // Any Web Connector version is fine.

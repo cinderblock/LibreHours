@@ -1,4 +1,4 @@
-/* Time Tracker service worker.
+/* LibreHours service worker.
  *
  * Makes the installed app start and work with no connection:
  *
@@ -179,7 +179,7 @@ self.addEventListener("push", (event) => {
   } catch {
     payload = { body: event.data ? event.data.text() : "" };
   }
-  const title = payload.title || "Time Tracker";
+  const title = payload.title || "LibreHours";
   const actions = Array.isArray(payload.actions) ? payload.actions : [];
   event.waitUntil(
     self.registration.showNotification(title, {

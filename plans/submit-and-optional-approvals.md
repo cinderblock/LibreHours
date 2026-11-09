@@ -135,7 +135,7 @@ the setting only moves (3).
       where it isn't they submit for someone who hasn't. Day cells say which,
       and a day is only shaded once it is as far as this organisation takes it.
 - [x] 8. Reports: "approved hours" means "signed off" when the gate is off.
-- [x] 9. Tests, e2e, README, and the design section of `plans/time-tracker.md`.
+- [x] 9. Tests, e2e, README, and the design section of `plans/librehours.md`.
 
 ## Things not to do
 

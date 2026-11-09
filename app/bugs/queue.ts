@@ -49,6 +49,7 @@ const idbStore: ProblemStore = {
 };
 
 function db(): Promise<IDBPDatabase> {
+  // Named before the app was LibreHours; kept so reports waiting to send survive.
   dbPromise ??= openDB("time-tracker-problems", 1, {
     upgrade(d) {
       d.createObjectStore("pending", { keyPath: "key" });

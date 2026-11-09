@@ -18,7 +18,7 @@ import { startSyncWorker } from "../src/sync-worker.ts";
  * because Vite's SSR re-evaluates modules in development, so a module-level
  * boolean can exist several times over in one process.
  */
-const KEY = "__timeTrackerInitialized__";
+const KEY = "__libreHoursInitialized__";
 type GlobalWithFlag = typeof globalThis & { [KEY]?: boolean };
 
 export function ensureServerInit(): void {

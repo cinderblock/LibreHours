@@ -29,10 +29,10 @@ const PROXIED_APP_PORT = PORT + 4;
 const PUSH_PORT = PORT + 5;
 
 const stamp = `${process.pid}-${Date.now()}`;
-process.env.E2E_DATABASE_PATH ??= join(tmpdir(), `time-tracker-e2e-${stamp}.db`);
-process.env.E2E_BRIDGE_DATABASE_PATH ??= join(tmpdir(), `time-tracker-e2e-bridge-${stamp}.db`);
-process.env.E2E_QBWC_DATABASE_PATH ??= join(tmpdir(), `time-tracker-e2e-qbwc-${stamp}.db`);
-process.env.E2E_PROXIED_DATABASE_PATH ??= join(tmpdir(), `time-tracker-e2e-proxied-${stamp}.db`);
+process.env.E2E_DATABASE_PATH ??= join(tmpdir(), `librehours-e2e-${stamp}.db`);
+process.env.E2E_BRIDGE_DATABASE_PATH ??= join(tmpdir(), `librehours-e2e-bridge-${stamp}.db`);
+process.env.E2E_QBWC_DATABASE_PATH ??= join(tmpdir(), `librehours-e2e-qbwc-${stamp}.db`);
+process.env.E2E_PROXIED_DATABASE_PATH ??= join(tmpdir(), `librehours-e2e-proxied-${stamp}.db`);
 // Made once in the main process, like the paths above, so every process agrees.
 if (!process.env.E2E_VAPID_PUBLIC_KEY) {
   const keys = webpush.generateVAPIDKeys();

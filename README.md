@@ -1,7 +1,13 @@
-# Time Tracker
+# LibreHours
 
 A self-hosted time tracker for small teams: phone-first, installable, works
 offline, and pushes submitted time into your accounting system.
+
+LibreHours stands on its own. It sends time to QuickBooks Desktop today, and is
+the time-tracking half of a pair with
+[LibreBooks](https://github.com/cinderblock/LibreBooks), an open-source
+replacement for QuickBooks Desktop: use either one alone, or the two together.
+(It was called `time-tracker` until November 2026.)
 
 Built to replace a per-seat SaaS time tracker. It is deliberately **generic** —
 no organisation's name, hostname, colour or job list appears anywhere in this
@@ -13,7 +19,7 @@ repository. All of that is deployment configuration or an admin setting.
 > [QB Bridge](https://github.com/cinderblock/quickbooks-desktop-sdk-bridge) or the
 > QuickBooks Web Connector) work end to end against a pretend QuickBooks; the
 > first real deployment is under way. See
-> [`plans/time-tracker.md`](plans/time-tracker.md) for the full plan, the
+> [`plans/librehours.md`](plans/librehours.md) for the full plan, the
 > decisions already taken, and the gotchas found along the way.
 
 ## What it does
@@ -285,7 +291,8 @@ annotated list. The ones worth calling out:
 | `QB_BRIDGE_URL`, `QB_BRIDGE_API_KEY` | For `qb-bridge`. Use the bridge machine's IPv4 address: bridges that only accept private addresses refuse a hostname that resolves to public IPv6. |
 | `ACCOUNTING_SYNC_EVERY_SECONDS` | For `qb-bridge`: how often signed-off time is sent (default 60). `0` sends only when an admin presses Send now. |
 | `QBWC_USERNAME`, `QBWC_PASSWORD` | For `qb-webconnector`: what the Web Connector signs in with. The password is typed into the Web Connector once. |
-| `APP_NAME`, `APP_SHORT_NAME`, `APP_THEME_COLOR` | The name and colour until an admin sets them under Settings (they drive the UI theme and the generated PWA manifest). |
+| `APP_NAME`, `APP_SHORT_NAME`, `APP_THEME_COLOR` | The name and colour until an admin sets them under Settings (they drive the UI theme and the generated PWA manifest). Both names default to `LibreHours`. |
+| `DATABASE_PATH` | The SQLite file (default `./data/librehours.db`; `/data/librehours.db` in the image). A data directory from before the rename holds `time-tracker.db`: while `librehours.db` doesn't exist there, the app keeps using the old file and says so in its log. |
 | `APP_CURRENCY` | ISO 4217 code rates and costs are shown in (default `USD`). Display only. |
 | `VAPID_PRIVATE_KEY` | Turns on notifications: 32 random bytes, base64url (`openssl rand -base64 33 \| tr '+/' '-_' \| head -c 43`, or the private half of `bunx web-push generate-vapid-keys`). The public key is derived from it; `VAPID_PUBLIC_KEY` may be given too, but must match. Optional: without it nothing is sent and the account page says so. Keep it for good — a new key silently orphans every device that turned notifications on. |
 | `VAPID_SUBJECT` | Who push services contact about this sender, a `mailto:` or `https:` URL — they refuse anything else. Defaults to `PUBLIC_BASE_URL` when that is https, so no one's address goes to them; on a plain-http address set it, or push stays off (the startup log says so). |
@@ -327,16 +334,17 @@ has them amended clean at the next passes, with no one taking anything back.
 ## Deployment
 
 On every push to `master`, CI typechecks, runs the unit and end-to-end tests,
-and publishes the image as `ghcr.io/cinderblock/time-tracker:<commit sha>` and
+and publishes the image as `ghcr.io/cinderblock/librehours:<commit sha>` and
 `:latest`, labelled with the commit it was built from
-(`org.opencontainers.image.revision`). **That is all this repo does.** It has no
+(`org.opencontainers.image.revision`). Builds from before the rename are at
+`ghcr.io/cinderblock/time-tracker`. **That is all this repo does.** It has no
 deploy step, no self-hosted runner and no access to any host — a public
 repository's Actions logs are public, and anything that can land a commit on
 `master` runs in its CI.
 
 Deploying is the deployer's, and wants three things:
 
-- **Pin a digest, not a tag.** `ghcr.io/cinderblock/time-tracker@sha256:…` is a
+- **Pin a digest, not a tag.** `ghcr.io/cinderblock/librehours@sha256:…` is a
   specific build; a tag can be moved by anyone who can push packages. Verify the
   image's `revision` label against the commit you meant to ship, and roll back
   by pinning the previous digest.

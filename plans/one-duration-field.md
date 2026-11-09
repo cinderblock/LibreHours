@@ -15,7 +15,7 @@ Two dialogs ask for a duration today, and both had the two-box pair:
 
 ## Environment / context
 
-- Same repo and checks as `plans/time-tracker.md`: `bun run typecheck`,
+- Same repo and checks as `plans/librehours.md`: `bun run typecheck`,
   `bun test src/ app/`, `bun run test:e2e`.
 - The parse belongs in `src/time.ts` with the other wall-clock helpers, so it
   is a unit test rather than a browser test.

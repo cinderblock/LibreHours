@@ -43,7 +43,7 @@ Six things from one round of use (2026-10-02):
 
 ## Decisions already made (don't re-ask)
 
-1. **The reference leaves the note entirely** (reverses `plans/time-tracker.md`
+1. **The reference leaves the note entirely** (reverses `plans/librehours.md`
    decision 8, 2026-09-16). An invoice line is the customer's to read. What the
    reference did — find a record whose send had an unknown outcome — is done by
    matching on what was sent instead: same job, same minutes, same note, and

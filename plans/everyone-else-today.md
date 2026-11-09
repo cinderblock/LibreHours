@@ -61,7 +61,7 @@ much they have so far.
 4. e2e in `e2e/timesheets.spec.ts`: admin's day shows another person's
    running timer and hours; a non-admin's day doesn't show the panel; the
    route refuses a non-admin.
-5. README + `plans/time-tracker.md` page table.
+5. README + `plans/librehours.md` page table.
 
 ## Findings / gotchas
 
@@ -89,7 +89,7 @@ much they have so far.
       `app/components/person-color.ts` so a person matches on both
 - [x] e2e: panel content, fold remembered across reload, name → their day,
       absent when acting for someone, absent for employees, 403 / 404
-- [x] README + `plans/time-tracker.md`; typecheck, 512 unit green
+- [x] README + `plans/librehours.md`; typecheck, 512 unit green
 - [x] Final e2e run: 89 passed, 3 skipped (2026-11-08). Committed.
 - [x] 2026-11-09 — **Deployed `4d00106`** (user: "deploy"): image CI green;
       image revision label matches the commit; container healthy, running

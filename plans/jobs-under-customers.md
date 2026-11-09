@@ -93,7 +93,7 @@ once. Four things the first real use turned up:
 9. [x] Admin Accounting page: link options for a job exclude customers.
 10. [x] Tests updated (unit fixtures book time on jobs under a customer; e2e
     set-ups make a customer first) and new tests for every rule above.
-11. [x] README and `plans/time-tracker.md` (decisions 12–13) updated.
+11. [x] README and `plans/librehours.md` (decisions 12–13) updated.
 12. [x] typecheck, unit (270), e2e (58) green; committed.
 
 ## Findings / gotchas

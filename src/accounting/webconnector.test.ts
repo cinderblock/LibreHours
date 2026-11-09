@@ -186,7 +186,7 @@ describe("the Web Connector", () => {
     });
     expect(call("sendRequestXML", { ticket: "made-up", qbXMLMajorVers: "13" }).result).toBe("");
     expect(call("receiveResponseXML", { ticket: "made-up", response: "" }).result).toBe("-101");
-    expect(call("serverVersion").result).toContain("time tracker");
+    expect(call("serverVersion").result).toContain("LibreHours");
     expect(call("clientVersion", { strVersion: "2.3.0.215" }).result).toBe("");
   });
 

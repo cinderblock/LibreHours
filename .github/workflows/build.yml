@@ -6,7 +6,7 @@ name: Build image
 # Which build actually runs is decided where the app is deployed, by pinning
 # this image's digest there. Shipping is therefore two steps:
 #
-#   1. push here → CI publishes ghcr.io/<owner>/time-tracker:<sha>
+#   1. push here → CI publishes ghcr.io/<owner>/<repo>:<sha> (ghcr.io/cinderblock/librehours)
 #   2. point the deployment at that digest
 #
 # This repo has no self-hosted runner and no access to any host. A public
