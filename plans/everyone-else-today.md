@@ -91,7 +91,10 @@ much they have so far.
       absent when acting for someone, absent for employees, 403 / 404
 - [x] README + `plans/time-tracker.md`; typecheck, 512 unit green
 - [x] Final e2e run: 89 passed, 3 skipped (2026-11-08). Committed.
-- [ ] Deploy — waits for the user
+- [x] 2026-11-09 — **Deployed `4d00106`** (user: "deploy"): image CI green;
+      image revision label matches the commit; container healthy, running
+      `4d00106`; `/signin` 200 and `/api/admin/day/:date` answers 401 signed
+      out.
 
 ## Open questions for the user
 
