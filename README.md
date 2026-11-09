@@ -217,6 +217,7 @@ bun run typecheck
 bun run test         # unit tests, including real passkey ceremonies
 bun run test:e2e     # builds, then drives the app in Chromium
 E2E_SCREENSHOTS=/tmp/shots bun run test:e2e   # ...and saves admin-page screenshots (desktop and phone)
+bun run ui-tour      # every screen with made-up data, desktop and phone, light and dark, into ui-tour/
 bun run build
 ```
 
@@ -392,7 +393,7 @@ src/cli/         Operator commands (`bun run admin-link`, `bun run bugs`)
 e2e/             Playwright end-to-end tests (app instances: standalone, bridge, Web Connector; a pretend push service)
 docs/            Contracts with other systems
 public/          Service worker and icons served at the site root
-scripts/         Build steps
+scripts/         Build steps, and the UI tour (`scripts/ui-tour/`) for reviewing every screen at once
 plans/           The living plan for this project — read this first
 ```
 

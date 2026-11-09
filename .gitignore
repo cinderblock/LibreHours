@@ -26,3 +26,6 @@ Thumbs.db
 # Playwright output
 test-results/
 playwright-report/
+
+# Screenshots from scripts/ui-tour
+/ui-tour/

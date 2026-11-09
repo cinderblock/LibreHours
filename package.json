@@ -15,7 +15,8 @@
     "test": "bun test src/ app/",
     "test:e2e": "bun run build && playwright test",
     "admin-link": "bun src/cli/admin-link.ts",
-    "bugs": "bun src/cli/bugs.ts"
+    "bugs": "bun src/cli/bugs.ts",
+    "ui-tour": "bun run build && bun scripts/ui-tour/tour.ts"
   },
   "dependencies": {
     "@mantine/colors-generator": "^9.6.1",
