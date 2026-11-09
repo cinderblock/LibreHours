@@ -13,6 +13,7 @@ import {
 
 import { e2eEnv } from "../playwright.config.ts";
 import type { OpPayload, OpType } from "../src/ops-schema.ts";
+import { addDays, today } from "../src/time.ts";
 import { uuidv7 } from "../src/uuid.ts";
 
 /**
@@ -433,8 +434,9 @@ test("move to the previous day and back", async () => {
 });
 
 test("move a week at a time, forward only as far as today", async () => {
-  const dayIn = (offset: number) =>
-    new Date(Date.now() + offset * 86_400_000).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  // Calendar days, not 24-hour steps: across a clock change those land on the
+  // wrong date late in the evening.
+  const dayIn = (offset: number) => addDays(today("America/Los_Angeles"), offset);
 
   // From today there is nowhere forward to go, either way.
   await expect(page.getByRole("button", { name: "Next day" })).toBeDisabled();
