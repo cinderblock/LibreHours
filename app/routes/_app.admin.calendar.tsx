@@ -11,6 +11,7 @@ import { categoryOptions, idParam, peopleOptions, weekFromUrl } from "../admin.s
 import { requireAdmin } from "../auth.server.ts";
 import { type Placed, hourRange, layoutDay } from "../components/calendar-layout.ts";
 import classes from "../components/calendar.module.css";
+import { personColor } from "../components/person-color.ts";
 import { WeekNav, dayLabel } from "../components/week-nav.tsx";
 import { pageTitle } from "../meta.ts";
 import { useNow } from "../tracker/context.tsx";
@@ -47,8 +48,7 @@ export function meta({ matches }: Route.MetaArgs) {
 type Data = Route.ComponentProps["loaderData"];
 type Block = Data["blocks"][number];
 
-const PALETTE = ["blue", "orange", "grape", "teal", "pink", "lime", "indigo", "red", "cyan", "yellow", "violet", "green"];
-const colorOf = (userId: number) => PALETTE[userId % PALETTE.length]!;
+const colorOf = personColor;
 const HOUR_PX = 44;
 const WEEKDAY = ["S", "M", "T", "W", "T", "F", "S"];
 

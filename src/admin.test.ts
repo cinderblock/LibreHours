@@ -8,7 +8,7 @@ import { getEntry, unsubmittedDatesBefore } from "./entries.ts";
 import { applyOp } from "./ops.ts";
 import type { OpPayload, OpResult, OpType } from "./ops-schema.ts";
 import { costOf, listRates, parseHourlyRate, removeRate, resolveRate, setRate } from "./rates.ts";
-import { calendarWeek, linesToCsv, reportLines, summarize, timesheet, total } from "./reports.ts";
+import { calendarWeek, linesToCsv, othersDay, reportLines, summarize, timesheet, total } from "./reports.ts";
 import { setWeekStartsOn, weekStartsOn } from "./settings.ts";
 import { freshDb } from "./testing/db.ts";
 import { datesBetween, isWorkDate, weekStartOf } from "./time.ts";
@@ -510,5 +510,51 @@ describe("reports", () => {
       expect.objectContaining({ userId: bob, jobName: "Other Co:Service", seconds: 7200, workDate: WED }),
     ]);
     expect(calendarWeek(SUN, { userIds: [bob] }, NINE).blocks).toHaveLength(0);
+  });
+});
+
+describe("othersDay", () => {
+  test("everyone but the admin, busiest first, with live totals, notes waiting and sign-off", () => {
+    const carol = createUser({ name: "Carol", role: "employee", actorUserId: admin }).id;
+    const gone = createUser({ name: "Gone", role: "employee", actorUserId: admin }).id;
+    const goneWithTime = createUser({ name: "Gone With Time", role: "employee", actorUserId: admin }).id;
+    worked(admin, acmeInstall, NINE, 60);
+
+    // Bob: a running timer, plus typed-in time on another job.
+    const running = uuidv7();
+    ok(send(bob, "timer.start", { entryId: running, jobId: acmeInstall, at: NINE }));
+    ok(send(bob, "entry.create", { entryId: uuidv7(), jobId: otherJob, workDate: WED, durationSeconds: 1800 }));
+    // Alice: a finished, submitted day.
+    worked(alice, otherJob, NINE, 90);
+    submitEntries({ userId: alice, from: WED, to: WED, actorUserId: alice });
+    // Carol: notes, no hours yet.
+    ok(send(carol, "note.create", { noteId: uuidv7(), at: NINE + 10 * MIN, text: "Measured up" }));
+    ok(send(carol, "note.create", { noteId: uuidv7(), at: NINE + 40 * MIN, text: "Cut boards" }));
+    // Deactivated: listed only with time that day.
+    worked(goneWithTime, otherJob, NINE, 30);
+    updateUserAccess({ userId: gone, active: false, actorUserId: admin });
+    updateUserAccess({ userId: goneWithTime, active: false, actorUserId: admin });
+
+    const day = othersDay(WED, admin, NINE + HOUR);
+    expect(day.map((p) => p.name)).toEqual(["Alice", "Bob", "Carol", "Gone With Time"]);
+    const [a, b, c, g] = day;
+
+    expect(a).toMatchObject({ seconds: 90 * 60, runningSince: null, submitted: "all", approved: false });
+    expect(b).toMatchObject({ seconds: 3600 + 1800, runningSince: NINE, submitted: "none", pendingNotes: null });
+    expect(b!.lines).toEqual([
+      expect.objectContaining({ entryId: running, jobName: "Acme:Install", startedAt: NINE, endedAt: null, runningSince: NINE }),
+      expect.objectContaining({ jobName: "Other Co:Service", startedAt: null, seconds: 1800 }),
+    ]);
+    expect(c).toMatchObject({ seconds: 0, lines: [], pendingNotes: { count: 2, lastAt: NINE + 40 * MIN } });
+    expect(g).toMatchObject({ active: false, seconds: 30 * 60 });
+  });
+
+  test("people with nothing that day are listed after those with time", () => {
+    worked(bob, acmeInstall, NINE, 15);
+    expect(othersDay(WED, admin, NINE).map((p) => [p.name, p.lines.length])).toEqual([
+      ["Bob", 1],
+      ["Alice", 0],
+    ]);
+    expect(othersDay("2026-09-17", admin, NINE).map((p) => p.name)).toEqual(["Alice", "Bob"]);
   });
 });

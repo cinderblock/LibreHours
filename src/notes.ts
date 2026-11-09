@@ -187,6 +187,22 @@ export function pendingNotesOn(userId: number, workDate: string): number {
     .get(userId, workDate)!.n;
 }
 
+/**
+ * Everyone's notes on one day still to turn into hours: how many, and when the
+ * latest was taken. For an admin's view of the day, where someone in notes
+ * mode may be working without any hours yet.
+ */
+export function pendingNotesByPerson(workDate: string): Map<number, { count: number; lastAt: number }> {
+  const rows = db()
+    .query<{ user_id: number; n: number; last_at: number }, [string]>(
+      `SELECT n.user_id, COUNT(*) AS n, MAX(n.at) AS last_at FROM ${FROM}
+        WHERE n.work_date = ? AND n.deleted_at IS NULL AND ${PENDING}
+        GROUP BY n.user_id`,
+    )
+    .all(workDate);
+  return new Map(rows.map((r) => [r.user_id, { count: r.n, lastAt: r.last_at }]));
+}
+
 /** Those of `dates` with notes still to turn into hours, latest first. */
 export function datesWithPendingNotes(userId: number, dates: readonly string[]): string[] {
   if (dates.length === 0) return [];

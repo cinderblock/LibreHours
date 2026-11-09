@@ -411,6 +411,7 @@ As built:
 | Rates & categories | `/admin/rates` | Set/remove rates (scope, target, date), categories (add, rename, delete with a confirmation that spells out the consequences). |
 | Settings | `/admin/settings` | The app's name, short name and colour (with a preview; blank goes back to the environment's defaults), the week-start day, and whether an admin has to approve submitted time. |
 | Someone's day | `/admin/people/:id/time/:date?` | The tracking screen in acting-for mode (below). |
+| Everyone else | panel on an admin's own `/` and `/day/:date`, from `GET /api/admin/day/:date` | Everyone else's lines, totals, running timers, sign-off and waiting notes for that day; refreshed every minute, never stored on the device (`plans/everyone-else-today.md`). |
 
 - **Acting-for mode** (`TrackerProvider actingFor`): ops go to
   `POST /api/admin/people/:id/ops` directly (never the outbox, which belongs to

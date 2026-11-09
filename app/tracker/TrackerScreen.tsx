@@ -8,6 +8,7 @@ import { type ActingFor, TrackerProvider, useNow, useTracker } from "./context.t
 import { DayHeader } from "./DayHeader.tsx";
 import { markDayMove, moveBetween } from "./day-move.ts";
 import { EntryList } from "./EntryList.tsx";
+import { EveryoneElse } from "./EveryoneElse.tsx";
 import { FlightProvider } from "./flight.tsx";
 import { HeldDaysNotice, HeldEntries } from "./HeldEntries.tsx";
 import { type DayModel, liveSeconds } from "./model.ts";
@@ -70,6 +71,8 @@ export function TrackerScreen({ model, actingFor }: { model: DayModel; actingFor
                 {/* Under the record, because submitting is what you do once
                     the record is right. */}
                 <SubmitDay />
+                {/* Admins: the rest of the team's day, beside their own. */}
+                <EveryoneElse />
               </Stack>
             </Grid.Col>
           </Grid>

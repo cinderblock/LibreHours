@@ -260,6 +260,44 @@ test("approvals can be switched on, and then time waits for an admin", async () 
   await expect(theirs.getByRole("button", { name: "Take it back" })).toHaveCount(0);
 });
 
+test("an admin's own day shows everyone else's time beside it", async () => {
+  const { page } = admin;
+  await page.goto("/");
+  const panel = page.locator("section", { has: page.getByRole("heading", { name: "Everyone else" }) });
+  // Other specs' people share this database, so no exact count.
+  await expect(panel.getByText(/^\d+ with time, \d+ on the clock$/)).toBeVisible();
+  const eddie = panel.locator(".mantine-Card-root", { hasText: "Eddie Employee" });
+  await expect(eddie.getByText("On the clock")).toBeVisible();
+  await expect(eddie.getByText("Echo Co › Echo Works")).toBeVisible();
+  // The finished line is signed off; the running timer can't be yet.
+  await expect(eddie.getByText("Partly submitted")).toBeVisible();
+  await expect(eddie.getByText("9:00 AM – 11:00 AM · submitted", { exact: true })).toBeVisible();
+  await expect(eddie.getByText(/^\d{1,2}:\d{2} [AP]M – now, plus 1h 30m without times$/)).toBeVisible();
+  await shot(page, "everyone-else");
+
+  // Closed stays closed on this device, and opens again.
+  const toggle = panel.getByRole("button", { name: /Everyone else/ });
+  await toggle.click();
+  await expect(eddie).toHaveCount(0);
+  await page.reload();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await toggle.click();
+  await expect(eddie).toBeVisible();
+
+  // Someone's name opens their day.
+  await eddie.getByRole("link", { name: "Eddie Employee" }).click();
+  await expect(page).toHaveURL(new RegExp(`/admin/people/${employeeId}/time$`));
+  // Acting for them, the panel isn't there: the screen is their day.
+  await expect(page.getByRole("heading", { name: "Everyone else" })).toHaveCount(0);
+
+  // Not for employees: neither the panel nor the data behind it.
+  await employee.page.goto("/");
+  await expect(employee.page.getByRole("heading", { name: "Time", exact: true })).toBeVisible();
+  await expect(employee.page.getByRole("heading", { name: "Everyone else" })).toHaveCount(0);
+  expect((await employee.context.request.get(`/api/admin/day/${TODAY}`)).status()).toBe(403);
+  expect((await page.request.get("/api/admin/day/2026-02-30")).status()).toBe(404);
+});
+
 test("the calendar shows each block of time", async () => {
   const { page } = admin;
   await page.getByRole("link", { name: "Calendar" }).click();

@@ -3,6 +3,7 @@ import { db } from "./db.server.ts";
 import { APPROVED_STATUSES, type EntryStatus, SIGNED_OFF_STATUSES } from "./entry-status.ts";
 import { jobLabel } from "./job-names.ts";
 import { listJobs } from "./jobs.ts";
+import { pendingNotesByPerson } from "./notes.ts";
 import { type RateScope, costOf, rateResolver } from "./rates.ts";
 import { addDays, datesBetween, decimalHours, formatClock } from "./time.ts";
 
@@ -434,6 +435,76 @@ export interface CalendarWeek {
    * a line that also has times (one line per job per day can hold both).
    */
   untimed: { entryId: string; userId: number; jobName: string; workDate: string; seconds: number; status: EntryStatus }[];
+}
+
+/** One person's day, as an admin sees it beside their own. */
+export interface OthersDayPerson {
+  userId: number;
+  name: string;
+  active: boolean;
+  /** The day's total so far, a running timer counted up to `now`. */
+  seconds: number;
+  /** When the running timer's current stretch began, if one is running. */
+  runningSince: number | null;
+  /** "none" while nothing is signed off; "all"/"some" of the day's lines are. */
+  submitted: "none" | "some" | "all";
+  approved: boolean;
+  lines: {
+    entryId: string;
+    jobName: string;
+    startedAt: number | null;
+    endedAt: number | null;
+    runningSince: number | null;
+    seconds: number;
+    untimedSeconds: number;
+    status: EntryStatus;
+  }[];
+  /** Notes taken that day and not yet turned into hours. */
+  pendingNotes: { count: number; lastAt: number } | null;
+}
+
+/**
+ * Everyone else's time on one day, for an admin's own day screen: every
+ * active person but `exceptUserId`, and anyone deactivated who has time that
+ * day. Those with time (or notes waiting) come first, by name; the rest after,
+ * by name.
+ */
+export function othersDay(workDate: string, exceptUserId: number, now = Date.now()): OthersDayPerson[] {
+  const lines = reportLines({ from: workDate, to: workDate }, now).filter((l) => l.userId !== exceptUserId);
+  const notes = pendingNotesByPerson(workDate);
+  const people = db()
+    .query<{ id: number; name: string; active: number }, []>(`SELECT id, name, active FROM users`)
+    .all();
+
+  const result: OthersDayPerson[] = [];
+  for (const p of people) {
+    if (p.id === exceptUserId) continue;
+    const mine = lines.filter((l) => l.userId === p.id);
+    if (p.active !== 1 && mine.length === 0) continue;
+    const signedOff = mine.filter((l) => SIGNED_OFF_STATUSES.has(l.status)).length;
+    result.push({
+      userId: p.id,
+      name: p.name,
+      active: p.active === 1,
+      seconds: mine.reduce((sum, l) => sum + l.seconds, 0),
+      runningSince: mine.find((l) => l.runningSince != null)?.runningSince ?? null,
+      submitted: signedOff === 0 ? "none" : signedOff === mine.length ? "all" : "some",
+      approved: mine.length > 0 && mine.every((l) => APPROVED_STATUSES.has(l.status)),
+      lines: mine.map((l) => ({
+        entryId: l.entryId,
+        jobName: l.jobName,
+        startedAt: l.startedAt,
+        endedAt: l.endedAt,
+        runningSince: l.runningSince,
+        seconds: l.seconds,
+        untimedSeconds: l.untimedSeconds,
+        status: l.status,
+      })),
+      pendingNotes: notes.get(p.id) ?? null,
+    });
+  }
+  const busy = (p: OthersDayPerson) => p.lines.length > 0 || p.pendingNotes != null;
+  return result.sort((a, b) => Number(busy(b)) - Number(busy(a)) || a.name.localeCompare(b.name));
 }
 
 export function calendarWeek(weekStart: string, filter: Omit<ReportFilter, "from" | "to"> = {}, now = Date.now()): CalendarWeek {

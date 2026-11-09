@@ -73,6 +73,13 @@ repository. All of that is deployment configuration or an admin setting.
   Earlier days nobody submitted are listed on the day screen, and can be
   submitted together. Nothing submits itself: time moves because someone says so.
 
+- **Admins see everyone else's day beside their own.** Under an admin's own
+  record on the day screen, today or any past day: each person's hours so far,
+  a running timer (counting), each job's times, whether the day is submitted
+  or approved, and notes not yet turned into hours. People with nothing yet
+  are one line. Names open that person's day. It refreshes itself every
+  minute, can be folded away, and is never kept on the device.
+
 - **Approval is optional, and off by default.** Organisations that want a second
   pair of eyes turn it on in Settings; submitted time then waits on the
   Timesheets page until an admin approves it, and from that point only an admin
