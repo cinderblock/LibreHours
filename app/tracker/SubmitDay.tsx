@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { isOwnerReopenable } from "../../src/entry-status.ts";
 import { formatWorkDate } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
+import { NEEDS_YOU, needsYou, toProblem } from "../components/needs-you.tsx";
 import { useTracker } from "./context.tsx";
 import { isPendingNote } from "./model.ts";
 
@@ -37,6 +38,8 @@ export function SubmitDay() {
   const jobsWithNotes = new Set(model.notes.filter(isPendingNote).map((n) => n.jobId)).size;
   const earlierWithNotes = (model.unsubmittedWithNotes ?? []).filter((d) => model.unsubmittedDays.includes(d));
   const [asking, setAsking] = useState<"day" | "earlier" | null>(null);
+  // Not submitted on a day gone by: that's what's waiting on this day.
+  const overdue = unsubmitted.length > 0 && model.workDate < model.today;
 
   // A day with nothing on it has nothing to say — except about other days.
   if (stopped.length === 0 && model.unsubmittedDays.length === 0) return null;
@@ -54,7 +57,7 @@ export function SubmitDay() {
   return (
     <Stack gap="sm">
       {stopped.length > 0 && (
-        <Card withBorder padding="md" className={appear.appear}>
+        <Card withBorder padding="md" {...needsYou(overdue, "card", appear.appear)}>
           <Stack gap="xs">
             {unsubmitted.length > 0 ? (
               <>
@@ -71,7 +74,7 @@ export function SubmitDay() {
                   </Button>
                 </Group>
                 {asking === "day" && (
-                  <Alert color="yellow" title="Some notes aren't hours yet" className={appear.appear}>
+                  <Alert color={NEEDS_YOU} title="Some notes aren't hours yet" className={appear.appear}>
                     <Stack gap="xs">
                       <Text size="sm">
                         {jobsWithNotes === 1 ? "A job" : `${jobsWithNotes} jobs`} on this day still{" "}
@@ -80,7 +83,7 @@ export function SubmitDay() {
                         waiting.
                       </Text>
                       <Group>
-                        <Button size="compact-sm" variant="light" color="yellow" onClick={submitDay}>
+                        <Button size="compact-sm" variant="light" color={NEEDS_YOU} onClick={submitDay}>
                           Submit anyway
                         </Button>
                         <Button size="compact-sm" variant="default" onClick={() => setAsking(null)}>
@@ -124,7 +127,7 @@ export function SubmitDay() {
 
       {model.unsubmittedDays.length > 0 && (
         <Alert
-          color="yellow"
+          color={NEEDS_YOU}
           className={appear.appear}
           title={`${model.unsubmittedDays.length} earlier ${model.unsubmittedDays.length === 1 ? "day" : "days"} not submitted`}
         >
@@ -133,7 +136,7 @@ export function SubmitDay() {
               {model.unsubmittedDays.slice(0, 5).map((date, i) => (
                 <span key={date}>
                   {i > 0 && ", "}
-                  <Anchor component={Link} to={hrefFor(date)} size="sm">
+                  <Anchor component={Link} to={toProblem(hrefFor(date))} size="sm">
                     {formatWorkDate(date)}
                   </Anchor>
                 </span>
@@ -144,7 +147,7 @@ export function SubmitDay() {
               <Button
                 size="compact-sm"
                 variant="light"
-                color="yellow"
+                color={NEEDS_YOU}
                 onClick={earlierWithNotes.length > 0 && asking !== "earlier" ? () => setAsking("earlier") : submitEarlier}
                 loading={pending}
               >
@@ -162,7 +165,7 @@ export function SubmitDay() {
                 {earlierWithNotes.map((date, i) => (
                   <span key={date}>
                     {i > 0 && ", "}
-                    <Anchor component={Link} to={hrefFor(date)} size="sm">
+                    <Anchor component={Link} to={toProblem(hrefFor(date))} size="sm">
                       {formatWorkDate(date)}
                     </Anchor>
                   </span>

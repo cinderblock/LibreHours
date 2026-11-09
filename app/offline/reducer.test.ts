@@ -79,7 +79,9 @@ function shape(m: DayModel) {
     entries: m.entries.map(entry),
     notes: m.notes.map((n) => ({ ...n })),
     jobs: m.jobs.map((j) => ({ id: j.id, fullName: j.fullName })),
-    week: m.week,
+    // `needsYou` isn't mirrored: ops change only the day shown, and the strip
+    // reads that day's flag from what's on screen (DayHeader), not from here.
+    week: m.week.map(({ date, seconds }) => ({ date, seconds })),
   };
 }
 
@@ -204,7 +206,7 @@ describe("the reducer mirrors the server", () => {
   test("weeks start on the configured day", () => {
     setWeekStartsOn(3, userId);
     const m = mirror([op("entry.create", { entryId: uuidv7(), jobId: jobA, workDate: DAY, durationSeconds: 600 })]);
-    expect(m.week[0]).toEqual({ date: DAY, seconds: 600 });
+    expect(m.week[0]).toMatchObject({ date: DAY, seconds: 600 });
     expect(m.week.at(-1)!.date).toBe("2026-09-22");
   });
 

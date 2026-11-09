@@ -7,7 +7,7 @@ import { useNow, useTracker } from "./context.tsx";
 import classes from "./DayHeader.module.css";
 import { type DayMove, markDayMove, moveBetween } from "./day-move.ts";
 import { daySteps } from "./day-steps.ts";
-import { isPendingNote, liveSeconds } from "./model.ts";
+import { isPendingNote, liveSeconds, pendingNotesNeedYou } from "./model.ts";
 
 const WEEKDAY = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -73,6 +73,12 @@ export function DayHeader() {
   const open = model.open;
   const running = open && now !== undefined ? liveSeconds(open, now) - open.durationSeconds : 0;
   const week = model.week.map((d) => (open && d.date === open.workDate ? { ...d, seconds: d.seconds + running } : d));
+  // The day shown is read from what's on screen, which changes as the person
+  // fixes it; the other days are as the server last said.
+  const hereNeedsYou =
+    (model.notes.some(isPendingNote) && pendingNotesNeedYou(model)) ||
+    (workDate < today && model.entries.some((e) => e.status === "draft")) ||
+    model.entries.some((e) => e.heldBy && e.heldBy.length > 0);
 
   return (
     <Stack gap="sm">
@@ -130,10 +136,12 @@ export function DayHeader() {
         {week.map((d) => {
           const selected = d.date === workDate;
           const future = d.date > today;
+          const attention = selected ? hereNeedsYou : d.needsYou === true;
           const cell = {
             className: classes.cell,
             "data-today": d.date === today ? "" : undefined,
             "data-future": future ? "" : undefined,
+            "data-needs-you-day": attention ? "" : undefined,
           };
           const label = (
             <>
@@ -148,6 +156,8 @@ export function DayHeader() {
               <Text size="xs" c={d.seconds ? undefined : "dimmed"}>
                 {d.seconds ? formatDurationHuman(d.seconds) : "–"}
               </Text>
+              {/* Something on this day waits on the person: the one attention color. */}
+              {attention && <span className={classes.needsYou} aria-hidden />}
             </>
           );
           // Days that haven't happened aren't links.
@@ -159,10 +169,12 @@ export function DayHeader() {
             <UnstyledButton
               key={d.date}
               component={Link}
+              // A plain link even to a day that needs you: stepping along the
+              // week shouldn't scroll the page. The day marks what's wrong on it.
               to={hrefFor(d.date)}
               viewTransition
               onClick={() => markDayMove(moveTo(d.date))}
-              aria-label={`${formatWorkDate(d.date)}: ${formatDurationHuman(d.seconds)}`}
+              aria-label={`${formatWorkDate(d.date)}: ${formatDurationHuman(d.seconds)}${attention ? ", needs you" : ""}`}
               aria-current={selected ? "date" : undefined}
               {...cell}
             >

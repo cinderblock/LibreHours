@@ -36,11 +36,12 @@ import { lineOf } from "../offline/reducer.ts";
 import { useTracker, useUndoToast } from "./context.tsx";
 import { useFlight, whereItIs } from "./flight.tsx";
 import { JobSelect, RecentJobButtons } from "./JobPicker.tsx";
-import { type NoteView, isPendingNote } from "./model.ts";
+import { type NoteView, isPendingNote, pendingNotesNeedYou } from "./model.ts";
 import { latestTimeOn, noteTimeOn } from "./note-time.ts";
 import { SEND_AFTER_MS, useSendWhenLeft } from "./send-when-left.ts";
 import { useTrackerDraft } from "./tracker-draft.ts";
 import appear from "../components/appear.module.css";
+import { NEEDS_YOU, NEEDS_YOU_TEXT, needsYou, toProblem } from "../components/needs-you.tsx";
 import classes from "./notes.module.css";
 
 /**
@@ -76,6 +77,8 @@ export function NotesPanel() {
   const canAdd = writable && !heldBy && !submitted;
   const thisDay = isToday ? "today" : formatWorkDate(model.workDate);
   const sections = useMemo(() => groupByJob(model.notes), [model.notes]);
+  // Notes not hours on a day gone by, or a submitted one: marked where they are.
+  const notesNeedYou = pendingNotesNeedYou(model);
   // The section whose note box should take the cursor next.
   const [focusJob, setFocusJob] = useState<string | null>(null);
   const clearFocus = useCallback(() => setFocusJob(null), []);
@@ -86,14 +89,14 @@ export function NotesPanel() {
     <Stack gap="sm">
       <Title order={3}>Notes</Title>
       {heldBy && (
-        <Alert color="yellow" title={`${formatWorkDate(heldBy.date)} isn't finished`}>
+        <Alert color={NEEDS_YOU} title={`${formatWorkDate(heldBy.date)} isn't finished`}>
           <Stack gap="xs">
             <Text size="sm">
               Turn {heldBy.count === 1 ? "its note" : `its ${heldBy.count} notes`} into hours, or leave{" "}
               {heldBy.count === 1 ? "it" : "them"} out, before {isToday ? "today's notes" : `notes on ${thisDay}`} start.
             </Text>
             <Group>
-              <Button component={Link} to={hrefFor(heldBy.date)} size="sm">
+              <Button component={Link} to={toProblem(hrefFor(heldBy.date))} size="sm">
                 Go to {formatWorkDate(heldBy.date)}
               </Button>
               {/* The setting is the person's own; an admin acting for them can't change it here. */}
@@ -105,7 +108,7 @@ export function NotesPanel() {
       {/* Not holding anything back doesn't make it less unfinished: still the
           warning, just without the wall. */}
       {unfinished && !heldBy && (
-        <Alert color="yellow" title={`${formatWorkDate(unfinished.date)} isn't finished`}>
+        <Alert color={NEEDS_YOU} title={`${formatWorkDate(unfinished.date)} isn't finished`}>
           <Stack gap="xs">
             <Text size="sm">
               It still has {unfinished.count === 1 ? "a note" : `${unfinished.count} notes`} to turn into hours or leave
@@ -113,7 +116,7 @@ export function NotesPanel() {
               {isToday ? "Today's notes" : "This day's notes"} don't have to wait for it.
             </Text>
             <Group>
-              <Button component={Link} to={hrefFor(unfinished.date)} size="sm">
+              <Button component={Link} to={toProblem(hrefFor(unfinished.date))} size="sm">
                 Go to {formatWorkDate(unfinished.date)}
               </Button>
             </Group>
@@ -144,6 +147,7 @@ export function NotesPanel() {
               section={s}
               canAdd={canAdd}
               canTurn={!submitted}
+              problem={notesNeedYou && s.pending.length > 0}
               focused={focusJob != null && focusJob === s.jobId}
               onFocused={clearFocus}
             />
@@ -363,6 +367,7 @@ function JobSection({
   section,
   canAdd,
   canTurn,
+  problem,
   focused,
   onFocused,
 }: {
@@ -370,6 +375,8 @@ function JobSection({
   canAdd: boolean;
   /** Its notes can become hours here: not while the day is submitted. */
   canTurn: boolean;
+  /** Its notes not yet hours are waiting on the person: marked, and said what to do. */
+  problem: boolean;
   focused: boolean;
   onFocused: () => void;
 }) {
@@ -381,7 +388,11 @@ function JobSection({
   const card = useRef<HTMLDivElement>(null);
   const name = section.jobId ? (section.jobName ?? "Unknown job") : null;
   const { name: title, above: place } = jobPath(name ?? "");
-  const written = section.pending.filter((n) => n.kind === "note").length;
+  // The note box's text lives here, not in the box: turning the notes into
+  // hours takes a note still typed in it along (one was once left behind).
+  const box = useNoteBox(canAdd ? section.jobId : null, section.notes);
+  const unsent = box.text.trim() !== "";
+  const written = section.pending.filter((n) => n.kind === "note").length + (unsent ? 1 : 0);
 
   async function leaveOut() {
     const result = await dispatch("notes.leave_out", { noteIds: section.pending.map((n) => n.id), at: Date.now() });
@@ -399,7 +410,7 @@ function JobSection({
       padding="sm"
       role="group"
       aria-label={name ? jobLabel(name) : "No job yet"}
-      className={appear.appear}
+      {...needsYou(problem, "card", appear.appear)}
     >
       <Stack gap="xs">
         <Group justify="space-between" align="start" wrap="nowrap">
@@ -416,25 +427,36 @@ function JobSection({
           </Text>
         </Group>
 
+        {problem && (
+          <Text size="sm" fw={500} c={NEEDS_YOU_TEXT}>
+            {section.pending.filter((n) => n.kind === "note").length === 1
+              ? "A note here isn't in the hours. "
+              : section.pending.some((n) => n.kind === "note")
+                ? `${section.pending.filter((n) => n.kind === "note").length} notes here aren't in the hours. `
+                : "This job's time isn't in the hours. "}
+            {!section.jobId
+              ? "Give it a job, then turn it into hours or leave it out."
+              : canTurn
+                ? "Turn it into hours, or leave it out if it was billed some other way."
+                : "Leave it out, or take the day back to add it to the hours."}
+          </Text>
+        )}
+
         {section.notes.map((n) => (
-          <NoteRow key={n.id} note={n} />
+          <NoteRow key={n.id} note={n} problem={problem && isPendingNote(n)} />
         ))}
 
         {section.jobId ? (
-          canAdd && <NoteBox
-              jobId={section.jobId}
-              jobName={name!}
-              notes={section.notes}
-              autoFocus={focused}
-              onFocused={onFocused}
-            />
+          canAdd && (
+            <NoteBox jobName={name!} box={box} paused={hours} autoFocus={focused} onFocused={onFocused} />
+          )
         ) : (
           <Text size="sm" c="dimmed">
             Give these notes a job (edit each one) to turn them into hours.
           </Text>
         )}
 
-        {section.pending.length > 0 && (
+        {(section.pending.length > 0 || unsent) && (
           <Group>
             {section.jobId && canTurn && (
               <Button size="sm" variant="light" onClick={() => setHours(true)}>
@@ -442,9 +464,11 @@ function JobSection({
               </Button>
             )}
             {/* Time billed some other way, or that wasn't work: settled without hours. */}
-            <Button size="sm" variant="subtle" color="gray" onClick={() => void leaveOut()} disabled={busy}>
-              Leave out
-            </Button>
+            {section.pending.length > 0 && (
+              <Button size="sm" variant="subtle" color="gray" onClick={() => void leaveOut()} disabled={busy}>
+                Leave out
+              </Button>
+            )}
           </Group>
         )}
         {section.leftOut.length > 0 && (
@@ -461,6 +485,7 @@ function JobSection({
             jobId={section.jobId}
             jobName={name!}
             pending={section.pending}
+            unsent={canAdd ? box : null}
             from={card}
           />
         )}
@@ -469,63 +494,48 @@ function JobSection({
   );
 }
 
+type NoteBoxState = ReturnType<typeof useNoteBox>;
+
+/** Stands in for a note still typed in its box, until it's added. */
+const UNSENT_ID = "unsent";
+
 /**
- * A note for one job, written as the work happens — or, writing up an earlier
- * day, with the time it happened.
+ * One job's note box: what's typed, and, writing up an earlier day, when it
+ * happened. Kept on the device as it's typed, so an update or a crash puts it
+ * back. `jobId` null keeps nothing (the card has no box).
  */
-function NoteBox({
-  jobId,
-  jobName,
-  notes,
-  autoFocus,
-  onFocused,
-}: {
-  jobId: string;
-  jobName: string;
-  /** The job's notes so far, in time order. */
-  notes: readonly NoteView[];
-  autoFocus: boolean;
-  onFocused: () => void;
-}) {
+function useNoteBox(jobId: string | null, notes: readonly NoteView[]) {
   const { model, dispatch, location } = useTracker();
   const isToday = model.workDate === model.today;
-  // Kept on the device as it's typed: an update or a crash puts it back.
-  const [text, setText] = useTrackerDraft(`note-box:${model.workDate}:${jobId}`, "");
+  const [text, setText] = useTrackerDraft(jobId ? `note-box:${model.workDate}:${jobId}` : null, "");
   // Writing up an earlier day, each note says when. Untouched, the time follows
   // this job's latest note — not the day's: a note after another job's start
   // would mean being back on this one, and reshape both jobs' hours.
-  const [time, setTime] = useTrackerDraft<string | null>(isToday ? null : `note-box-at:${model.workDate}:${jobId}`, null);
+  const [time, setTime] = useTrackerDraft<string | null>(
+    jobId && !isToday ? `note-box-at:${model.workDate}:${jobId}` : null,
+    null,
+  );
   const shownTime = time ?? latestTimeOn(notes, model.timezone);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!autoFocus) return;
-    ref.current?.focus();
-    onFocused();
-  }, [autoFocus, onFocused]);
-
-  // Typed and never added: it goes by itself a little after the box is left.
-  const { secondsLeft, keepWriting, boxProps } = useSendWhenLeft(text.trim() !== "", (leftAt) => void add(leftAt), ref);
-
-  function submit(event: React.FormEvent) {
-    event.preventDefault();
-    void add(Date.now());
+  /** When a note written at `now` is stamped: `now` today; the box's time on an earlier day. */
+  function whenFor(now: number): ReturnType<typeof noteTimeOn> {
+    return isToday ? { ok: true, at: now } : noteTimeOn(model.workDate, shownTime, model.timezone, now);
   }
 
-  /** `now`: when the note was written — Add pressed, or the box left. */
-  async function add(now: number) {
+  /**
+   * Add what's typed as a note written at `now` (Add pressed, or the box left).
+   * Its id, or null when there was nothing to add or it wasn't taken — the
+   * reason is then in `problem`.
+   */
+  async function add(now: number): Promise<string | null> {
     const written = text.trim();
-    if (!written) return;
-    let at = now;
-    if (!isToday) {
-      const when = noteTimeOn(model.workDate, shownTime, model.timezone, at);
-      if (!when.ok) {
-        setProblem(when.problem);
-        return;
-      }
-      at = when.at;
+    if (!written || !jobId) return null;
+    const when = whenFor(now);
+    if (!when.ok) {
+      setProblem(when.problem);
+      return null;
     }
     setProblem(null);
     // Empty the field now rather than when the dispatch answers. The note is
@@ -535,9 +545,10 @@ function NoteBox({
     // leaves Add disabled over a field with words still in it.
     setText("");
     setBusy(true);
+    const noteId = uuidv7();
     const result = await dispatch("note.create", {
-      noteId: uuidv7(),
-      at,
+      noteId,
+      at: when.at,
       text: written,
       jobId,
       // Where the device is now says nothing about where an earlier day was.
@@ -546,9 +557,58 @@ function NoteBox({
     setBusy(false);
     // Hand it back if it was refused — but not over a note begun since, which
     // would be the same mistake pointing the other way.
-    if (!result.ok) setText((current) => (current === "" ? written : current));
+    if (!result.ok) {
+      setText((current) => (current === "" ? written : current));
+      return null;
+    }
     // The time typed stays for the next note: writing a day up, the next one
     // is usually a little later, and that's the person's to say.
+    return noteId;
+  }
+
+  return { text, setText, shownTime, setTime, problem, setProblem, busy, whenFor, add };
+}
+
+/**
+ * A note for one job, written as the work happens — or, writing up an earlier
+ * day, with the time it happened.
+ */
+function NoteBox({
+  jobName,
+  box,
+  paused,
+  autoFocus,
+  onFocused,
+}: {
+  jobName: string;
+  box: NoteBoxState;
+  /** The job's hours dialog is open: it takes what's typed along itself. */
+  paused: boolean;
+  autoFocus: boolean;
+  onFocused: () => void;
+}) {
+  const { model } = useTracker();
+  const isToday = model.workDate === model.today;
+  const { text, setText, shownTime, setTime, problem, setProblem, busy, add } = box;
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    ref.current?.focus();
+    onFocused();
+  }, [autoFocus, onFocused]);
+
+  // Typed and never added: it goes by itself a little after the box is left —
+  // but not while the hours dialog that will add it is open.
+  const { secondsLeft, keepWriting, boxProps } = useSendWhenLeft(
+    text.trim() !== "" && !paused,
+    (leftAt) => void add(leftAt),
+    ref,
+  );
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    void add(Date.now());
   }
 
   return (
@@ -615,7 +675,7 @@ function NoteBox({
  * opens the same way, for its time or its job — it has no words to change.
  * A rolled-up note is just a record.
  */
-function NoteRow({ note }: { note: NoteView }) {
+function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting on the person. */ problem: boolean }) {
   const { model, dispatch, pending } = useTracker();
   const undoToast = useUndoToast();
   // Part of an entry, or settled without one: a record either way.
@@ -728,7 +788,7 @@ function NoteRow({ note }: { note: NoteView }) {
 
   return (
     <Group
-      className={`${classes.row} ${appear.appear}`}
+      {...needsYou(problem, "row", `${classes.row} ${appear.appear}`)}
       justify="space-between"
       wrap="nowrap"
       align="start"
@@ -756,6 +816,11 @@ function NoteRow({ note }: { note: NoteView }) {
           <Group gap="xs" wrap="nowrap" align="start">
             {when}
             {what}
+            {problem && note.kind === "note" && (
+              <Badge size="sm" variant="light" color={NEEDS_YOU} style={{ flex: "0 0 auto" }}>
+                not in the hours
+              </Badge>
+            )}
             <PencilIcon />
           </Group>
         </UnstyledButton>
@@ -803,6 +868,7 @@ function HoursDialog({
   jobId,
   jobName,
   pending,
+  unsent: box,
   from,
 }: {
   opened: boolean;
@@ -810,6 +876,12 @@ function HoursDialog({
   jobId: string;
   jobName: string;
   pending: NoteView[];
+  /**
+   * The job's note box, when it has one. A note still typed in it, not yet
+   * added, is added and goes into the hours with the rest — it used to be left
+   * behind, a loose note keeping the day "unfinished" after it was submitted.
+   */
+  unsent: NoteBoxState | null;
   /** The job's card: where its hours are seen to leave from. */
   from: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -832,7 +904,27 @@ function HoursDialog({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const lastAt = model.notes.length ? Math.max(...model.notes.map((n) => n.at)) : 0;
+  // A note still typed in the job's box, as the note it's about to become:
+  // written now today, or at the box's time on an earlier day.
+  const unsentText = box?.text.trim() ?? "";
+  const unsentWhen = unsentText && box ? box.whenFor(openedAt || Date.now()) : null;
+  const unsentNote: NoteView | null =
+    unsentWhen?.ok === true
+      ? {
+          id: UNSENT_ID,
+          at: unsentWhen.at,
+          kind: "note",
+          text: unsentText,
+          jobId,
+          jobName,
+          rolledIntoEntryId: null,
+          settled: null,
+        }
+      : null;
+  const dayNotes = unsentNote ? [...model.notes, unsentNote] : model.notes;
+  const withUnsent = unsentNote ? [...pending, unsentNote] : pending;
+
+  const lastAt = dayNotes.length ? Math.max(...dayNotes.map((n) => n.at)) : 0;
 
   // Fresh each time it opens — and only then. Read through refs: the model is
   // rebuilt on every data refresh, which must not wipe what's been typed.
@@ -855,10 +947,10 @@ function HoursDialog({
 
   // This job's runs, over the whole day's notes; only their pending part counts.
   const spans = useMemo(() => {
-    const pendingIds = new Set(pending.map((n) => n.id));
-    const byId = new Map(model.notes.map((n) => [n.id, n]));
+    const pendingIds = new Set(withUnsent.map((n) => n.id));
+    const byId = new Map(dayNotes.map((n) => [n.id, n]));
     const out: { startedAt: number; endedAt: number }[] = [];
-    for (const line of proposeRollup(model.notes, endAt)) {
+    for (const line of proposeRollup(dayNotes, endAt)) {
       if (line.jobId !== jobId) continue;
       const mine = line.noteIds.filter((id) => pendingIds.has(id));
       if (mine.length === 0) continue;
@@ -866,12 +958,12 @@ function HoursDialog({
       if (line.endedAt > startedAt) out.push({ startedAt, endedAt: line.endedAt });
     }
     return out;
-  }, [model.notes, pending, jobId, endAt]);
+  }, [dayNotes, withUnsent, jobId, endAt]);
   const suggested = spans.reduce((sum, s) => sum + Math.round((s.endedAt - s.startedAt) / 1000), 0);
 
   // The notes' own seconds are noise here — nobody means "2:07:43".
   const duration = draft?.duration ?? formatDurationInput(Math.round(suggested / 60) * 60 + alreadyRef.current);
-  const note = draft?.note ?? joinNotes(pending.map((n) => n.text));
+  const note = draft?.note ?? joinNotes(withUnsent.map((n) => n.text));
   /** Close, forgetting what was typed: cancelled, or saved. */
   const close = () => {
     discardDraft();
@@ -887,15 +979,28 @@ function HoursDialog({
   const locked = line != null && !isEditable(line.status);
   const lockedForGood = locked && !isOwnerReopenable(line.status, line.adminApproved);
   const problems =
-    line && seconds < 0
-      ? ["That's less than the hours already there. To lower those, edit them."]
-      : lockedForGood
-        ? ["These hours are approved; an admin can reopen them to add more."]
-        : rollupProblems([{ jobId, durationSeconds: seconds, joinsLine: line != null }]);
+    unsentWhen && !unsentWhen.ok
+      ? [`The note you're still writing has a time that won't work (${unsentWhen.problem}). Fix it in the note box first.`]
+      : line && seconds < 0
+        ? ["That's less than the hours already there. To lower those, edit them."]
+        : lockedForGood
+          ? ["These hours are approved; an admin can reopen them to add more."]
+          : rollupProblems([{ jobId, durationSeconds: seconds, joinsLine: line != null }]);
 
   async function commit() {
     setBusy(true);
     setError(null);
+    const noteIds = pending.map((n) => n.id);
+    if (unsentNote && box) {
+      // Added first, as Add would, then turned into hours with the rest.
+      const added = await box.add(openedAt || Date.now());
+      if (!added) {
+        setBusy(false);
+        setError("The note you were writing couldn't be added, so nothing was changed. Try again.");
+        return;
+      }
+      noteIds.push(added);
+    }
     const entryId = uuidv7();
     const leaves = whereItIs(from.current);
     const result = await dispatch(
@@ -908,7 +1013,7 @@ function HoursDialog({
             jobId,
             durationSeconds: seconds,
             note: note.trim() || null,
-            noteIds: pending.map((n) => n.id),
+            noteIds,
           },
         ],
       },
@@ -966,7 +1071,12 @@ function HoursDialog({
           minRows={2}
           maxRows={6}
         />
-        {line && problems.length > 0 && (
+        {unsentNote && (
+          <Text size="sm" data-testid="unsent-included">
+            Your note “{unsentNote.text}” wasn't added yet. It goes in with these hours.
+          </Text>
+        )}
+        {(line || (unsentWhen && !unsentWhen.ok)) && problems.length > 0 && (
           <Text size="sm" c="red">
             {problems[0]}
           </Text>

@@ -5,6 +5,7 @@ import { isEditable, isOwnerReopenable } from "../../src/entry-status.ts";
 import { jobLabel, jobPath } from "../../src/job-names.ts";
 import { formatClock, formatDurationHuman } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
+import { NEEDS_YOU, NEEDS_YOU_TEXT } from "../components/needs-you.tsx";
 import { ClampedText } from "../components/clamped-text.tsx";
 import { useNow, useTracker, useUndoToast } from "./context.tsx";
 import { EntryEditor } from "./EntryEditor.tsx";
@@ -130,14 +131,14 @@ function CombineLines({ lines }: { lines: EntryView[] }) {
   }
 
   return (
-    <Alert color="yellow" title={`${jobLabel(first.jobName)} has ${lines.length} lines on this day`}>
+    <Alert color={NEEDS_YOU} title={`${jobLabel(first.jobName)} has ${lines.length} lines on this day`}>
       <Stack gap="xs">
         <Text size="sm">
           Hours for one job and day go on one line now; these were made before that. Combining adds them up and joins
           their notes. It can't be undone.
         </Text>
         <Group gap="xs">
-          <Button size="sm" variant="light" color="yellow" onClick={() => void combine()} loading={busy} disabled={!!blocked || pending}>
+          <Button size="sm" variant="light" color={NEEDS_YOU} onClick={() => void combine()} loading={busy} disabled={!!blocked || pending}>
             Combine into one line
           </Button>
           {blocked && (
@@ -208,7 +209,7 @@ function EntryRow({
       <Group gap="xs" wrap="wrap">
         <Text fw={500}>{jobTitle}</Text>
         {running && (
-          <Badge size="sm" color={entry.runningSince != null ? "green" : "yellow"} variant="light">
+          <Badge size="sm" color={entry.runningSince != null ? "green" : "gray"} variant="light">
             {entry.runningSince != null ? "running" : "paused"}
           </Badge>
         )}
@@ -223,12 +224,12 @@ function EntryRow({
           </Badge>
         )}
         {held && (
-          <Badge size="sm" variant="light" color="orange">
+          <Badge size="sm" variant="light" color={NEEDS_YOU}>
             already in QuickBooks
           </Badge>
         )}
         {duplicated && (
-          <Badge size="sm" variant="light" color="yellow">
+          <Badge size="sm" variant="light" color={NEEDS_YOU}>
             another line for this job
           </Badge>
         )}
@@ -285,9 +286,9 @@ function EntryRow({
           </div>
         )}
         {held ? (
-          <Text size="xs" c="orange">
+          <Text size="xs" c={NEEDS_YOU_TEXT}>
             QuickBooks already has time for this —{" "}
-            <Anchor href="#held" size="xs" c="orange" underline="always">
+            <Anchor href="#held" size="xs" c={NEEDS_YOU_TEXT} underline="always">
               compare and choose
             </Anchor>{" "}
             below.

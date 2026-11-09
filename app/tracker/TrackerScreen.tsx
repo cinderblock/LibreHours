@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { jobLabel } from "../../src/job-names.ts";
 import { formatDurationHuman } from "../../src/time.ts";
 import { useBugContext } from "../bugs/context.ts";
+import { useArriveAtProblem } from "../components/needs-you.tsx";
 import { type ActingFor, TrackerProvider, useNow, useTracker } from "./context.tsx";
 import { DayHeader } from "./DayHeader.tsx";
 import { markDayMove, moveBetween } from "./day-move.ts";
@@ -31,6 +32,13 @@ import "./day-move.css";
  *
  * On a phone the columns stack, the workbench first.
  */
+/** Arriving by a link to a problem on this day: land on it (needs-you.tsx). */
+function ArriveAtProblem() {
+  const { model } = useTracker();
+  useArriveAtProblem(!model.partial);
+  return null;
+}
+
 export function TrackerScreen({ model, actingFor }: { model: DayModel; actingFor?: ActingFor }) {
   return (
     <TrackerProvider model={model} actingFor={actingFor}>
@@ -43,6 +51,7 @@ export function TrackerScreen({ model, actingFor }: { model: DayModel; actingFor
           <HeldDaysNotice />
           {/* Named so it travels on its own when the day changes, rather than
               being swept into the root cross-fade with the arrows. */}
+          <ArriveAtProblem />
           <Grid gap="lg" data-day-part="body">
             <Grid.Col span={{ base: 12, md: 6 }}>
               <Stack gap="sm">
@@ -122,7 +131,7 @@ function OfflineNotice() {
   const { model } = useTracker();
   if (!model.offline) return null;
   return (
-    <Alert color="yellow" title={model.partial ? "Offline — this day isn't on this device" : "Offline"}>
+    <Alert color="gray" title={model.partial ? "Offline — this day isn't on this device" : "Offline"}>
       {model.partial
         ? "Time already saved for this day can't be shown until you're back online. Anything you add now is kept on this phone and saved when the connection returns."
         : "Showing the copy saved on this device. Keep tracking — changes are saved when the connection returns."}

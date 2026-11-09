@@ -64,7 +64,7 @@
 }
 
 .autoAdd[data-waiting] {
-  border-inline-start-color: var(--mantine-color-yellow-filled);
-  background: var(--mantine-color-yellow-light);
-  color: var(--mantine-color-yellow-light-color);
+  border-inline-start-color: var(--mantine-color-orange-filled);
+  background: var(--mantine-color-orange-light);
+  color: var(--mantine-color-orange-light-color);
 }

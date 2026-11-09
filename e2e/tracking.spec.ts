@@ -511,7 +511,10 @@ test("a day slides its highlight along the strip, a week slides the whole strip,
       requestAnimationFrame(tick);
     });
     await act();
-    await page.waitForTimeout(400);
+    // Until the move is over (its marker comes off <html> after the slide),
+    // not a fixed wait: a slow load starts the slide late, and its last
+    // frames were then counted as the next move's.
+    await page.waitForFunction(() => !document.documentElement.dataset.dayMove, null, { timeout: 10_000 });
     return page.evaluate(() => [...(window as unknown as { __slid: Set<string> }).__slid].sort());
   };
 
@@ -684,6 +687,31 @@ test("switch to notes mode: add a job for the day, jot under it, and turn each j
   await expect(page.getByRole("button", { name: /^Turn .*into hours/ })).toHaveCount(0);
 });
 
+test("turning notes into hours takes a note still typed in the box along, instead of leaving it behind", async () => {
+  // Typed, never added: the job has something to turn into hours already.
+  const alpha = page.getByRole("group", { name: "Riverside › Alpha Site" });
+  await alpha.getByPlaceholder("What did you do?").fill("Tidied the site");
+  await alpha.getByRole("button", { name: "Turn 1 note into hours" }).click();
+  const dialog = page.getByRole("dialog", { name: "Hours for Riverside › Alpha Site" });
+  await expect(dialog.getByTestId("unsent-included")).toContainText("Tidied the site");
+  await expect(dialog.getByLabel("Note")).toHaveValue("Tidied the site");
+  // Waiting on the dialog, the box doesn't send it by itself as well.
+  await expect(alpha.getByRole("status")).toHaveCount(0);
+  await dialog.getByLabel("Total for the day").fill("45m");
+  await dialog.getByRole("button", { name: "Attach the notes to Alpha Site" }).click();
+  await expect(dialog).toBeHidden();
+
+  // It's a note now, and part of the hours: nothing left loose on the day.
+  await expect(alpha.getByPlaceholder("What did you do?")).toHaveValue("");
+  await expect(alpha.getByRole("button", { name: /^Turn .*into hours/ })).toHaveCount(0);
+  await expect(alpha.getByText("Tidied the site")).toBeVisible();
+  await expect(alpha.getByText("added to time")).toHaveCount(3);
+  await expect(entryRows().filter({ hasText: "Alpha Site" }).getByText(/Site walk; Tidied the site/)).toBeVisible();
+  await page.reload();
+  await expect(alpha.getByText("Tidied the site")).toHaveCount(1);
+  await expect(alpha.getByRole("button", { name: /^Turn .*into hours/ })).toHaveCount(0);
+});
+
 test("in notes mode, yesterday's notes have to become hours before today's can start", async () => {
   // A note left on yesterday with no job, as another device might leave it.
   const at = Date.now() - 86_400_000;
@@ -695,12 +723,19 @@ test("in notes mode, yesterday's notes have to become hours before today's can s
   await expect(held).toContainText("Turn its note into hours, or leave it out, before today's notes start.");
   await expect(page.getByPlaceholder("Add a job for today — type to search")).toHaveCount(0);
   await held.getByRole("link", { name: /^Go to / }).click();
-  await expect(page).toHaveURL(new RegExp(`/day/${yesterday}$`));
+  // The link lands on what's wrong there: marked, scrolled to and focused.
+  await expect(page).toHaveURL(new RegExp(`/day/${yesterday}#needs-you$`));
   await expect(page.getByRole("button", { name: "Next day" })).toBeDisabled();
   await expect(page.getByText("Turn this day's notes into hours, or leave them out, to move on.")).toBeVisible();
 
   // Without a job it can't become hours: give it one.
   const orphan = page.getByRole("group", { name: "No job yet" });
+  await expect(orphan).toHaveAttribute("data-needs-you", "");
+  await expect(orphan).toBeFocused();
+  await expect(orphan.getByText("Give it a job, then turn it into hours or leave it out.")).toBeVisible();
+  await expect(orphan.getByText("not in the hours")).toBeVisible();
+  // The week strip marks the day too.
+  await expect(page.locator('[data-day-part="week"] [aria-current="date"]')).toHaveAttribute("aria-label", /, needs you$/);
   await expect(orphan.getByText("Left over from yesterday")).toBeVisible();
   await orphan.getByRole("button", { name: /^Edit / }).click();
   await pickJob(orphan.getByRole("combobox"), "Alpha Site");
@@ -743,7 +778,8 @@ test("someone who'd rather finish old notes later can turn the hold off where it
   await expect(held).toContainText("It still has a note to turn into hours or leave out. Today's notes don't have to wait for it.");
   if (shots) await page.screenshot({ path: `${shots}/notes-reminder.png`, fullPage: true });
   await held.getByRole("link", { name: /^Go to / }).click();
-  await expect(page).toHaveURL(new RegExp(`/day/${yesterday}$`));
+  await expect(page).toHaveURL(new RegExp(`/day/${yesterday}#needs-you$`));
+  await expect(page.locator("[data-needs-you]").first()).toBeFocused();
   // Moving on from it isn't held either.
   await expect(page.getByText("Turn this day's notes into hours, or leave them out, to move on.")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Next day" })).toBeVisible();

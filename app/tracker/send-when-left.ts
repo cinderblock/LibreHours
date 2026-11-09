@@ -86,12 +86,20 @@ export function useSendWhenLeft(hasText: boolean, send: (leftAt: number) => void
     setSecondsLeft(watch.current.secondsLeft(now));
   }, []);
 
-  // Emptied, or sent: nothing waits.
+  // Emptied, sent, or paused: nothing waits. Back on while the box is already
+  // left (a dialog that was to add it closed without doing so): the wait
+  // starts again from now.
+  const hadText = useRef(hasText);
   useEffect(() => {
-    if (hasText) return;
-    watch.current.reset();
-    setSecondsLeft(null);
-  }, [hasText]);
+    const was = hadText.current;
+    hadText.current = hasText;
+    if (!hasText) {
+      watch.current.reset();
+      setSecondsLeft(null);
+      return;
+    }
+    if (!was && box.current && !box.current.contains(document.activeElement)) leave();
+  }, [hasText, leave]);
 
   const waiting = secondsLeft !== null;
   useEffect(() => {

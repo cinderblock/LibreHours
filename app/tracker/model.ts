@@ -1,5 +1,6 @@
 import type { NoteKind, NoteSettled } from "../../src/ops-schema.ts";
 import type { TrackingMode } from "../../src/tracking-mode.ts";
+import { type EntryStatus, SIGNED_OFF_STATUSES } from "../../src/entry-status.ts";
 
 /**
  * The shapes the tracking screen works with. Shared by the server loader and
@@ -85,6 +86,22 @@ export interface NoteView {
 /** A note still to be turned into hours: part of no entry, and not settled. */
 export const isPendingNote = (n: NoteView): boolean => !n.rolledIntoEntryId && !n.settled;
 
+/** A day whose time is all signed off — submitted or further: done, until it's taken back. */
+export function daySignedOff(entries: readonly { status: EntryStatus }[]): boolean {
+  return entries.length > 0 && entries.every((e) => SIGNED_OFF_STATUSES.has(e.status));
+}
+
+/**
+ * Whether a day's notes not yet hours are waiting on the person, rather than
+ * work under way: on a day gone by, on a day already submitted, or left over
+ * from notes mode. Today's notes, in notes mode, are just today's work.
+ */
+export function pendingNotesNeedYou(
+  m: Pick<DayModel, "mode" | "workDate" | "today"> & { entries: readonly { status: EntryStatus }[] },
+): boolean {
+  return m.mode !== "notes" || m.workDate < m.today || daySignedOff(m.entries);
+}
+
 export interface DayModel {
   userId: number;
   /** Server clock when this was built. Decides which of two copies is newer. */
@@ -143,7 +160,8 @@ export interface DayModel {
   jobs: JobView[];
   /** Bookable jobs the person booked most recently, newest first. */
   recentJobIds: string[];
-  week: { date: string; seconds: number }[];
+  /** `needsYou`: something on the day waits on the person (see `pendingNotesNeedYou`). */
+  week: { date: string; seconds: number; needsYou?: true }[];
 }
 
 /**

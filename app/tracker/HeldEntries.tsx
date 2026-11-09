@@ -7,6 +7,7 @@ import { isEditable } from "../../src/entry-status.ts";
 import { jobLabel } from "../../src/job-names.ts";
 import { formatClock, formatDurationHuman, formatWorkDate } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
+import { NEEDS_YOU, needsYou, toProblem } from "../components/needs-you.tsx";
 import { ClampedText } from "../components/clamped-text.tsx";
 import { MOTION } from "../motion.ts";
 import { useTracker } from "./context.tsx";
@@ -37,7 +38,7 @@ export function HeldDaysNotice() {
   if (days.length === 0) return null;
   return (
     <Alert
-      color="orange"
+      color={NEEDS_YOU}
       className={appear.appear}
       title={`QuickBooks already has time on ${days.length === 1 ? "a day" : `${days.length} days`} you submitted`}
     >
@@ -45,7 +46,7 @@ export function HeldDaysNotice() {
         {days.slice(0, 5).map((date, i) => (
           <span key={date}>
             {i > 0 && ", "}
-            <Anchor component={Link} to={hrefFor(date)} size="sm">
+            <Anchor component={Link} to={toProblem(hrefFor(date))} size="sm">
               {formatWorkDate(date)}
             </Anchor>
           </span>
@@ -63,7 +64,7 @@ export function HeldEntries() {
   const held = heldOn(model.entries);
   if (held.length === 0) return null;
   return (
-    <Stack gap="sm" id="held" className={appear.appear}>
+    <Stack gap="sm" id="held" {...needsYou(true, "row", appear.appear)}>
       <Stack gap={0}>
         <Title order={3}>QuickBooks already has time for this day</Title>
         <Text size="sm" c="dimmed">

@@ -1,0 +1,60 @@
+/*
+ * "This is waiting on you": the one look for it (see needs-you.tsx).
+ *
+ * A card gets an orange border and a faint orange wash; a row inside a card
+ * gets an orange bar down its start edge. Both are drawn with box-shadow and
+ * background only, so nothing around them moves when they come and go.
+ *
+ * Arriving by a link to the problem, it pulses twice with a ring, then
+ * settles. Without motion, the ring just shows for the same time.
+ */
+
+.card {
+  border-color: var(--mantine-color-orange-filled) !important;
+  box-shadow: inset 0 0 0 1px var(--mantine-color-orange-filled);
+  background-color: color-mix(in srgb, var(--mantine-color-orange-light) 55%, var(--mantine-color-body));
+  scroll-margin-block: 96px;
+}
+
+.row {
+  box-shadow: inset 3px 0 0 var(--mantine-color-orange-filled);
+  padding-inline-start: 10px;
+  border-radius: 2px;
+  scroll-margin-block: 96px;
+}
+
+.card:focus,
+.row:focus {
+  outline: none;
+}
+
+.card:focus-visible,
+.row:focus-visible {
+  outline: 2px solid var(--mantine-color-orange-filled);
+  outline-offset: 2px;
+}
+
+.card[data-arrived],
+.row[data-arrived] {
+  animation: arrived 1.2s ease-out 2;
+}
+
+@keyframes arrived {
+  0% {
+    outline: 0 solid color-mix(in srgb, var(--mantine-color-orange-filled) 70%, transparent);
+    outline-offset: 0;
+  }
+  100% {
+    outline: 10px solid transparent;
+    outline-offset: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card[data-arrived],
+  .row[data-arrived] {
+    animation: none;
+    outline: 3px solid var(--mantine-color-orange-filled);
+    outline-offset: 3px;
+  }
+}

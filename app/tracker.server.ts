@@ -16,7 +16,14 @@ import { heldEntries } from "../src/sync.ts";
 import { addDays, today, weekStartOf } from "../src/time.ts";
 import { DEFAULT_TRACKING_MODE } from "../src/tracking-mode.ts";
 import { getUser } from "../src/users.ts";
-import { type DayModel, type EntryView, type JobView, compareEntries, compareNotes } from "./tracker/model.ts";
+import {
+  type DayModel,
+  type EntryView,
+  type JobView,
+  compareEntries,
+  compareNotes,
+  daySignedOff,
+} from "./tracker/model.ts";
 
 /**
  * Builds the model the tracking screen renders: one person, one work date.
@@ -103,6 +110,20 @@ export function loadDay(userId: number, workDate: string): DayModel {
     .sort()
     .reverse();
 
+  // The week's days that are waiting on the person, so the strip can say so:
+  // notes not hours on a day gone by (or on a day already submitted), time
+  // not submitted on a day gone by, or time held against the accounting
+  // system's own. The same things the day itself marks.
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const inWeek = (d: string) => d >= weekStart && d <= weekEnd;
+  const needsYou = new Set<string>([
+    ...datesWithPendingNotes(userId, weekDays).filter(
+      (d) => d < todayDate || (d === todayDate && daySignedOff(listEntriesForDate(userId, d))),
+    ),
+    ...unsubmittedDatesBefore(userId, todayDate).filter(inWeek),
+    ...[...held.values()].map((h) => h.workDate).filter(inWeek),
+  ]);
+
   return {
     userId,
     generatedAt: Date.now(),
@@ -133,9 +154,10 @@ export function loadDay(userId: number, workDate: string): DayModel {
       .sort(compareNotes),
     jobs,
     recentJobIds: recentJobIds(userId),
-    week: Array.from({ length: 7 }, (_, i) => {
-      const date = addDays(weekStart, i);
-      return { date, seconds: totals.get(date) ?? 0 };
-    }),
+    week: weekDays.map((date) => ({
+      date,
+      seconds: totals.get(date) ?? 0,
+      ...(needsYou.has(date) ? { needsYou: true as const } : {}),
+    })),
   };
 }
