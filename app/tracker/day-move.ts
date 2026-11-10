@@ -1,5 +1,4 @@
 import { addDays } from "../../src/time.ts";
-import { MOTION } from "../motion.ts";
 
 /**
  * Which way a navigation moves the day, written where CSS can see it.
@@ -27,24 +26,60 @@ export function moveBetween(from: string, to: string, weekStart: string): DayMov
   return `${inWeek ? "day" : "week"}-${later ? "later" : "earlier"}`;
 }
 
-let clearing = 0;
+let current = 0;
 
 /**
- * Clearing the attribute afterwards is tidiness only: every navigation that
- * animates sets it first, so a stale value can never be read by the next one.
+ * How long a move waits for its transition to begin before giving up on it —
+ * a navigation that failed, or one cut short, never starts one. Generous,
+ * because the transition only begins once the new day has loaded.
+ */
+const GIVE_UP_MS = 10_000;
+
+const isSlide = (a: Animation) => (a.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition") ?? false;
+
+/**
+ * Marks the move, and takes the mark off once the transition it starts has
+ * finished.
+ *
+ * The mark has to last exactly as long as that transition: the animations in
+ * `day-move.css` hang off it, and taking it off part-way swaps them for the
+ * browser's own mid-flight — the day fades in a second time, the highlight
+ * changes speed — and drags the transition out past the next move. And it has
+ * to go afterwards, because the browser's back and forward replay a view
+ * transition too, and would play this direction for them.
+ *
+ * The transition starts only when the new day has loaded, however long that
+ * takes, so its end can't be timed from the click. React Router starts it
+ * and doesn't hand it out; its parts' animations are on the document,
+ * though, and the ones that weren't there at the click are this move's. The
+ * mark comes off once those are gone from the document — not merely
+ * finished: finished, they hold their last frame until the browser takes the
+ * transition down, and changing what drives them in that moment starts the
+ * browser's own over again. A newer move owns the mark from the moment it's
+ * made, so an older one never takes it off.
  */
 export function markDayMove(move: DayMove): void {
-  document.documentElement.dataset.dayMove = move;
-  window.clearTimeout(clearing);
-  // The stylesheet's duration rather than the constant's, so a page that has
-  // slowed the motion down (a probe, say) keeps the attribute for the whole
-  // of the slide — the animations hang off it, and lose it mid-flight if it
-  // goes early.
-  const base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--motion-base")) || MOTION.base;
-  clearing = window.setTimeout(
-    () => {
-      delete document.documentElement.dataset.dayMove;
-    },
-    Math.max(MOTION.slow, base) + 200,
-  );
+  const root = document.documentElement;
+  root.dataset.dayMove = move;
+  const mine = ++current;
+  const clear = () => {
+    if (current === mine) delete root.dataset.dayMove;
+  };
+  // Already running when the click came: a move this one interrupts.
+  const before = new Set(document.getAnimations().filter(isSlide));
+  const giveUpAt = performance.now() + GIVE_UP_MS;
+  let slide: Animation[] = [];
+  const watch = () => {
+    if (current !== mine) return;
+    const now = document.getAnimations().filter(isSlide);
+    if (!slide.length) {
+      // Every part's animation starts together, when the transition does.
+      slide = now.filter((a) => !before.has(a));
+      if (!slide.length && performance.now() > giveUpAt) return clear();
+    } else if (!slide.some((a) => now.includes(a))) {
+      return clear();
+    }
+    requestAnimationFrame(watch);
+  };
+  requestAnimationFrame(watch);
 }
