@@ -1,0 +1,19 @@
+/*
+ * App-wide adjustments to Mantine's look, from the whole-UI reviews.
+ */
+
+/* Mantine's "dimmed" grey is about 3:1 on white (and less on a tinted card),
+   and it carries real instructions here — hints, "Locked — take the day back
+   to change it". One step darker in light, one lighter in dark. */
+:root[data-mantine-color-scheme="light"] {
+  --mantine-color-dimmed: var(--mantine-color-gray-7);
+}
+
+:root[data-mantine-color-scheme="dark"] {
+  --mantine-color-dimmed: var(--mantine-color-dark-1);
+}
+
+/* An off switch's grey track all but vanished on white. */
+:root[data-mantine-color-scheme="light"] .mantine-Switch-track:not([data-checked]) {
+  border-color: var(--mantine-color-gray-5);
+}

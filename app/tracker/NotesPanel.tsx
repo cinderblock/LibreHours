@@ -40,7 +40,7 @@ import { latestTimeOn, noteTimeOn } from "./note-time.ts";
 import { SEND_AFTER_MS, useSendWhenLeft } from "./send-when-left.ts";
 import { useTrackerDraft } from "./tracker-draft.ts";
 import appear from "../components/appear.module.css";
-import { NEEDS_YOU, NEEDS_YOU_TEXT, dialogActions, needsYou } from "../components/needs-you.tsx";
+import { NEEDS_YOU, NEEDS_YOU_TEXT, dialogActions, needsYou, needsYouBadge } from "../components/needs-you.tsx";
 import classes from "./notes.module.css";
 
 /**
@@ -88,8 +88,8 @@ export function NotesPanel() {
       <Title order={3}>Notes</Title>
       {/* Earlier days, and the hold, are said once, at the top (EarlierDays.tsx). */}
       {heldBy && (
-        <Text c="dimmed" size="sm">
-          {isToday ? "Today's notes wait" : "This day's notes wait"} for {formatWorkDate(heldBy.date)} (see above).
+        <Text size="sm">
+          You can't add notes here until {formatWorkDate(heldBy.date)} is finished (see above).
         </Text>
       )}
       {/* Said by the marked card instead, when a note here is what's left. */}
@@ -339,7 +339,6 @@ function JobSection({
     if (result.ok) undoToast(section.pending.length === 1 ? "Note left out." : "Notes left out.");
   }
 
-  const onDay = model.workDate === model.today ? "today" : `on ${formatWorkDate(model.workDate)}`;
   // A loose note whose words were typed into the job's hours by hand (how
   // the first one of these came about): the hours already say it.
   const line = section.jobId ? model.entries.find((e) => e.jobId === section.jobId) : undefined;
@@ -384,14 +383,16 @@ function JobSection({
         {problem && (
           <Text size="sm">
             <Text span inherit fw={600} c={NEEDS_YOU_TEXT}>
-              {section.pending.filter((n) => n.kind === "note").length === 1
-                ? `A note ${onDay} isn't in the hours.`
-                : section.pending.some((n) => n.kind === "note")
-                  ? `${section.pending.filter((n) => n.kind === "note").length} notes ${onDay} aren't in the hours.`
-                  : "This job's time isn't in the hours."}
+              {wordsAlreadyThere
+                ? "This note is already covered."
+                : section.pending.filter((n) => n.kind === "note").length === 1
+                  ? "A note here isn't in the hours."
+                  : section.pending.some((n) => n.kind === "note")
+                    ? `${section.pending.filter((n) => n.kind === "note").length} notes here aren't in the hours.`
+                    : "This job's time isn't in the hours."}
             </Text>{" "}
             {wordsAlreadyThere
-              ? `Its words are already in ${title}'s hours, so leave it out to finish the day.`
+              ? `Its words are in ${title}'s hours already, but the note itself was never linked to them. Leave it out to finish the day.`
               : null}
             {!wordsAlreadyThere && !section.jobId
               ? "Give it a job, then turn it into hours or leave it out."
@@ -402,12 +403,11 @@ function JobSection({
                   : reopenable
                   ? "Take the day back to add it to the hours, or leave it out if it was billed some other way."
                   : "Leave it out if it was billed some other way, or ask an admin to reopen the day."}
-            {heldHere && " The next day opens once it's done."}
           </Text>
         )}
 
         {section.notes.map((n) => (
-          <NoteRow key={n.id} note={n} problem={problem && isPendingNote(n)} />
+          <NoteRow key={n.id} note={n} problem={problem && isPendingNote(n)} covered={wordsAlreadyThere} />
         ))}
 
         {section.jobId ? (
@@ -432,7 +432,7 @@ function JobSection({
             )}
             {problem && wordsAlreadyThere && (
               <Button size="sm" onClick={() => void leaveOut()} disabled={busy}>
-                Leave it out
+                Leave out
               </Button>
             )}
             {problem && !canTurn && reopenable && (
@@ -660,7 +660,17 @@ function NoteBox({
  * opens the same way, for its time or its job — it has no words to change.
  * A rolled-up note is just a record.
  */
-function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting on the person. */ problem: boolean }) {
+function NoteRow({
+  note,
+  problem,
+  covered = false,
+}: {
+  note: NoteView;
+  /** Not hours, and waiting on the person. */
+  problem: boolean;
+  /** Its words are in the job's hours already: left over, not missing. */
+  covered?: boolean;
+}) {
   const { model, dispatch, pending } = useTracker();
   const undoToast = useUndoToast();
   // Part of an entry, or settled without one: a record either way.
@@ -770,7 +780,7 @@ function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting
         ? { color: "gray", label: "left out" }
         : null
     : problem && note.kind === "note"
-      ? { color: NEEDS_YOU, label: "not in the hours" }
+      ? { color: NEEDS_YOU, label: covered ? "left over" : "not in the hours" }
       : null;
   const what = (
     <Text size="sm" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
@@ -780,7 +790,12 @@ function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting
       {status && (
         <>
           {" "}
-          <Badge component="span" size="sm" variant="light" color={status.color} className={classes.status}>
+          <Badge
+            component="span"
+            size="sm"
+            {...(status.color === NEEDS_YOU ? needsYouBadge : { variant: "light", color: status.color })}
+            className={classes.status}
+          >
             {status.label}
           </Badge>
         </>

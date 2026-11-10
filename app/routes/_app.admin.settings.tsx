@@ -44,7 +44,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         { name: stringField(form, "name"), shortName: stringField(form, "shortName"), themeColor: stringField(form, "themeColor") },
         user.id,
       );
-      return { ok: true, message: "Saved. Phones pick up the new name and colour the next time the app opens." };
+      return { ok: true, message: "Saved. Phones pick up the new name and color the next time the app opens." };
     },
     approvals: (form) => {
       const on = stringField(form, "value") === "true";
@@ -98,7 +98,7 @@ function BrandingCard({ data }: { data: Data }) {
 
   return (
     <Stack gap="sm">
-      <Title order={3}>Name and colour</Title>
+      <Title order={3}>Name and color</Title>
       <Text size="sm" c="dimmed">
         Shown in the header, the browser tab, sign-in prompts and on phones' home screens. A phone that already has the
         app installed may keep the old name under its icon until the app is added again.
@@ -137,7 +137,7 @@ function BrandingCard({ data }: { data: Data }) {
               swatchesPerRow={11}
               // Beside the field where there's room, so it doesn't cover Save.
               popoverProps={{ position: "right-start" }}
-              error={valid ? undefined : "Pick a colour, like #1c7ed6."}
+              error={valid ? undefined : "Pick a color, like #1c7ed6."}
               maw={320}
             />
             <Group gap="sm" align="center">

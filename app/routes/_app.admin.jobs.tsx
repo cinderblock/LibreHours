@@ -1,6 +1,6 @@
 import { Anchor, Badge, Box, Button, Card, Group, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { zoneName } from "../../src/time.ts";
-import { NEEDS_YOU } from "../components/needs-you.tsx";
+import { NEEDS_YOU, needsYouBadge } from "../components/needs-you.tsx";
 import { useEffect, useRef, useState } from "react";
 import { Link, useFetcher } from "react-router";
 
@@ -466,8 +466,7 @@ function NameLine({ job, label, fetcher }: { job: JobItem; label: string; fetche
         {job.provisional && !job.remote && (
           <Badge
             size="sm"
-            color={NEEDS_YOU}
-            variant="light"
+            {...needsYouBadge}
             component={Link}
             to="/admin/accounting#jobs"
             style={{ cursor: "pointer" }}

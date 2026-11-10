@@ -35,8 +35,9 @@
   background-size: 100% var(--hour-height);
 }
 
+/* Today: a faint tint — a stronger one swallowed the events on it. */
 .day[data-today="true"] {
-  background-color: var(--mantine-color-brand-light);
+  background-color: color-mix(in srgb, var(--mantine-color-brand-light) 45%, transparent);
 }
 
 .day[data-focus="false"],

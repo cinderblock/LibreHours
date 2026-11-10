@@ -146,8 +146,12 @@ export function DayHeader() {
           />
         </Group>
       </Group>
-      {/* Why the way forward is shut is said on the notes holding it
-          (NotesPanel), where it can be fixed. */}
+      {/* Why the arrows forward are greyed out, beside them. */}
+      {heldHere && workDate < today && (
+        <Text size="sm" ta="center">
+          Finish this day's notes to move on to the next day.
+        </Text>
+      )}
 
       <SimpleGrid cols={7} spacing={4} data-day-part="week">
         {week.map((d) => {
@@ -167,14 +171,14 @@ export function DayHeader() {
               <Text size="xs" c="dimmed">
                 {WEEKDAY[weekdayOf(d.date)]}
               </Text>
-              <Text size="sm" fw={selected ? 700 : 500} data-date>
+              <Text size="sm" fw={selected ? 700 : 500} data-date className={classes.date}>
                 {Number(d.date.slice(8))}
+                {/* Something on this day waits on the person: the one attention color. */}
+                {attention && <span className={classes.needsYou} aria-hidden />}
               </Text>
               <Text size="xs" c={d.seconds ? undefined : "dimmed"}>
                 {d.seconds ? formatDurationHuman(d.seconds) : "–"}
               </Text>
-              {/* Something on this day waits on the person: the one attention color. */}
-              {attention && <span className={classes.needsYou} aria-hidden />}
             </>
           );
           // Days that haven't happened aren't links.

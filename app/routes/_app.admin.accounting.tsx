@@ -251,7 +251,7 @@ export default function Accounting({ loaderData }: Route.ComponentProps) {
           <Stack gap="xs">
             <Group justify="space-between">
               <Text fw={500}>{loaderData.label}</Text>
-              <Badge color={loaderData.kind === "none" ? "gray" : "red"}>{loaderData.kind}</Badge>
+              <Badge variant="light" color={loaderData.kind === "none" ? "gray" : "red"}>{loaderData.kind}</Badge>
             </Group>
             <Text size="sm">{loaderData.health.detail}</Text>
             <Text size="sm" c="dimmed">

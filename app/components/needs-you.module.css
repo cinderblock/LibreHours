@@ -10,7 +10,8 @@
  */
 
 :global(:root) {
-  --needs-you-text: var(--mantine-color-orange-9);
+  /* Orange 9 on the orange wash measured 3.9:1; this is about 5:1. */
+  --needs-you-text: color-mix(in srgb, var(--mantine-color-orange-9) 78%, black);
 }
 
 :global([data-mantine-color-scheme="dark"]) {

@@ -271,7 +271,7 @@ function ShareBar({ seconds, signedOff, max }: { seconds: number; signedOff: num
   return (
     <div aria-hidden style={{ display: "flex", height: 6, marginTop: 4, borderRadius: 3, overflow: "hidden" }}>
       <div style={{ width: `${solid}%`, background: "var(--mantine-color-teal-filled)" }} />
-      <div style={{ width: `${whole - solid}%`, background: "var(--mantine-color-teal-light)" }} />
+      <div style={{ width: `${whole - solid}%`, background: "var(--mantine-color-default-border)" }} />
     </div>
   );
 }

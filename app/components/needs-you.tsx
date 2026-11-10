@@ -29,6 +29,9 @@ export const FAILED = "red";
  */
 export const NEEDS_YOU_TEXT = "var(--needs-you-text)";
 
+/** Props for a Badge in the needs-you colour: its text dark enough to read. */
+export const needsYouBadge = { color: NEEDS_YOU, variant: "light", style: { "--badge-color": "var(--needs-you-text)" } } as const;
+
 /**
  * A dialog's buttons: in a row at the end on a wide screen; on a phone,
  * stacked full width with the main action (last in the markup) on top.

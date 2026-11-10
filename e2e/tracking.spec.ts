@@ -723,15 +723,15 @@ test("in notes mode, yesterday's notes have to become hours before today's can s
 
   await page.reload();
   const held = page.getByRole("alert").filter({ hasText: /n't finished/ });
-  await expect(held).toContainText(`${formatWorkDate(yesterday)}: a note isn't in the hours`);
-  await expect(held).toContainText(`Today's notes wait until ${formatWorkDate(yesterday)}'s note is in the hours or left out.`);
+  await expect(held).toContainText(/note isn't in the hours/i);
+  await expect(held).toContainText(`You can't add notes today until ${formatWorkDate(yesterday)} is finished.`);
   await expect(page.getByPlaceholder("Add a job for today — type to search")).toHaveCount(0);
   await held.getByRole("link", { name: `Go to ${formatWorkDate(yesterday)}` }).click();
   // The link lands on what's wrong there: marked, scrolled to and focused.
   await expect(page).toHaveURL(new RegExp(`/day/${yesterday}#needs-you$`));
   await expect(page.getByRole("button", { name: "Next day" })).toBeDisabled();
-  // Why the next day is shut is said on what's holding it.
-  await expect(page.getByText("The next day opens once it's done.", { exact: false })).toBeVisible();
+  // Why the next day is shut is said beside the arrows.
+  await expect(page.getByText("Finish this day's notes to move on to the next day.")).toBeVisible();
 
   // Without a job it can't become hours: give it one.
   const orphan = page.getByRole("group", { name: "No job yet" });
@@ -774,20 +774,20 @@ test("someone who'd rather finish old notes later can turn the hold off where it
   await expect(held).toBeVisible();
   const shots = process.env.E2E_SCREENSHOTS;
   if (shots) await page.screenshot({ path: `${shots}/notes-held.png`, fullPage: true });
-  await held.getByRole("button", { name: "Stop holding new days" }).click();
+  await held.getByRole("button", { name: "Let me add notes anyway" }).click();
 
   // Today takes jobs; the unfinished day is still called out, as a warning,
   // just not a wall.
-  await expect(held.getByRole("button", { name: "Stop holding new days" })).toHaveCount(0);
+  await expect(held.getByRole("button", { name: "Let me add notes anyway" })).toHaveCount(0);
   await expect(page.getByPlaceholder("Add a job for today — type to search")).toBeVisible();
-  await expect(held).toContainText(`${formatWorkDate(yesterday)}: a note isn't in the hours`);
-  await expect(held).not.toContainText("Today's notes wait");
+  await expect(held).toContainText(/note isn't in the hours/i);
+  await expect(held).not.toContainText("You can't add notes");
   if (shots) await page.screenshot({ path: `${shots}/notes-reminder.png`, fullPage: true });
   await held.getByRole("link", { name: `Go to ${formatWorkDate(yesterday)}` }).click();
   await expect(page).toHaveURL(new RegExp(`/day/${yesterday}#needs-you$`));
   await expect(page.locator("[data-needs-you]").first()).toBeFocused();
   // Moving on from it isn't held either.
-  await expect(page.getByText("The next day opens once it's done.", { exact: false })).toHaveCount(0);
+  await expect(page.getByText("Finish this day's notes to move on to the next day.")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Next day" })).toBeVisible();
 
   // The Account page has the same switch, to turn the hold back on.

@@ -29,6 +29,7 @@ import { rootCopy } from "./offline/storage.ts";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/notifications/styles.css";
+import "./global.css";
 
 import { branding } from "../src/branding.ts";
 import { config } from "../src/config.server.ts";

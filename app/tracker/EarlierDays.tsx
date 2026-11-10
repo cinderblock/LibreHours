@@ -4,8 +4,14 @@ import { Link, useFetcher } from "react-router";
 
 import { formatWorkDate } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
-import { NEEDS_YOU_TEXT, NeedsYouCallout, toProblem } from "../components/needs-you.tsx";
+import { NeedsYouCallout, toProblem } from "../components/needs-you.tsx";
 import { useTracker } from "./context.tsx";
+
+/** One day's reasons as a sentence: "A note isn't in the hours, and not submitted." */
+function sentence(reasons: string[]): string {
+  const text = reasons.join(", and ");
+  return `${text[0]!.toUpperCase()}${text.slice(1)}.`;
+}
 
 /** How many days are listed before "and N more". */
 const SHOWN = 5;
@@ -60,12 +66,25 @@ export function EarlierDaysNeedYou() {
           {days.slice(0, SHOWN).map((date, i) => (
             <Group key={date} component="li" justify="space-between" gap="xs" wrap="wrap">
               <Text size="sm">
-                <Text span inherit fw={600}>
-                  {formatWorkDate(date)}
-                </Text>
-                : {reasons.get(date)!.join(", and ")}.
+                {days.length === 1 ? (
+                  sentence(reasons.get(date)!)
+                ) : (
+                  <>
+                    <Text span inherit fw={600}>
+                      {formatWorkDate(date)}
+                    </Text>
+                    : {reasons.get(date)!.join(", and ")}.
+                  </>
+                )}
               </Text>
-              <Button component={Link} to={toProblem(hrefFor(date))} size="xs" variant={i === 0 ? "filled" : "default"}>
+              {/* On today the first is the thing to do next; on another day
+                  that day's own work comes first, so none is filled. */}
+              <Button
+                component={Link}
+                to={toProblem(hrefFor(date))}
+                size="sm"
+                variant={i === 0 && isToday ? "filled" : "default"}
+              >
                 Go to {formatWorkDate(date)}
               </Button>
             </Group>
@@ -79,9 +98,11 @@ export function EarlierDaysNeedYou() {
 
         {heldBy && (
           <Stack gap={4}>
-            <Text size="sm" fw={600} c={NEEDS_YOU_TEXT}>
-              {isToday ? "Today's notes wait" : "This day's notes wait"} until {formatWorkDate(heldBy.date)}'s{" "}
-              {heldBy.count === 1 ? "note is" : "notes are"} in the hours or left out.
+            <Text size="sm">
+              <Text span inherit fw={600}>
+                You can't add notes {isToday ? "today" : "on this day"}
+              </Text>{" "}
+              until {formatWorkDate(heldBy.date)} is finished.
             </Text>
             {/* The setting is the person's own; an admin acting for them can't change it here. */}
             {!actingFor && <StopHolding />}
@@ -143,10 +164,11 @@ function StopHolding() {
         loading={busy}
         onClick={() => fetcher.submit({ intent: "notes-hold", hold: "0" }, { method: "post", action: "/account" })}
       >
-        Stop holding new days
+        Let me add notes anyway
       </Button>
       <Text size="xs" c="dimmed">
-        A setting: from now on an unfinished day only reminds you. Turn it back on under Your account.
+        This changes a setting: from now on an unfinished day only reminds you. You can change it back under Your
+        account.
       </Text>
       {fetcher.data && !fetcher.data.ok && (
         <Text size="xs" c="red" role="alert">

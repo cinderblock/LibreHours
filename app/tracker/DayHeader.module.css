@@ -71,10 +71,17 @@
   background: var(--mantine-color-orange-filled);
 }
 
+/* The day's number: the needs-you dot hangs off it, so it's plainly that
+   day's on a wide strip as on a narrow one. */
+.date {
+  position: relative;
+  display: inline-block;
+}
+
 .needsYou {
   position: absolute;
-  top: 5px;
-  right: 6px;
+  top: 0;
+  left: calc(100% + 3px);
   width: 8px;
   height: 8px;
   border-radius: 50%;

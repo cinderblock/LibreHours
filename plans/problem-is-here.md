@@ -202,6 +202,24 @@ Everyone else doesn't say "nobody" twice.
 Reviewer brief now lists the deliberate choices (Add time on a submitted
 day, the text "Report a problem" button) so they aren't re-raised.
 
+### Round 4 — A 8/10, B 7/10 — fixes applied, round 5 running
+
+Contrast measured by the reviewers: orange-9 title on the wash 3.9:1, the
+orange badge 2.3:1, Mantine "dimmed" ≈3:1 → `--needs-you-text` is orange-9
+mixed 78% with black (~5:1), `needsYouBadge` uses it for badge text, and
+`app/global.css` darkens "dimmed" (gray-7 light, dark-1 dark) and off-switch
+tracks. The covered loose note now says "This note is already covered…
+never linked to them. Leave out" with a "left over" badge (not "not in the
+hours", which contradicted the visible hours). The hold says what it stops:
+"You can't add notes today until <day> is finished", button "Let me add
+notes anyway" with "This changes a setting". The reason for greyed forward
+arrows is back beside them ("Finish this day's notes to move on to the next
+day."). The strip's dot hangs off the day's number; timesheets' dot follows
+the hours, and a phone cell shows "1.5h". One filled button in the earlier
+days list, and only on today; a lone day isn't named twice. "color";
+"submitted time stays here"; report bars' remainder visible; calendar's
+today tint lighter.
+
 ## Progress log
 
 - [x] 2026-11-09 — Report read, cause confirmed in the op log, plan written.

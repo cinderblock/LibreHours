@@ -69,22 +69,35 @@
 /* "7h 30m" on one line even in a phone's narrow cell. */
 @media (max-width: $mantine-breakpoint-md) {
   .day {
-    font-size: var(--mantine-font-size-xs);
-    line-height: 1.2;
-    padding-inline: 2px;
+    white-space: nowrap;
   }
 }
 
 /* Waiting on someone (needs-you.tsx): the same dot and edge as the week strip. */
-.day[data-needs-you-day]::after {
+.day[data-needs-you-day] .hours::after {
   content: "";
-  position: absolute;
-  top: 4px;
-  right: 4px;
+  display: inline-block;
   width: 7px;
   height: 7px;
+  margin-inline-start: 3px;
+  vertical-align: 0.45em;
   border-radius: 50%;
   background: var(--mantine-color-orange-filled);
+}
+
+/* "1h 30m" on wide screens; "1.5h" in a phone's narrow cell. */
+.short {
+  display: none;
+}
+
+@media (max-width: $mantine-breakpoint-md) {
+  .long {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
 }
 
 @media (min-width: $mantine-breakpoint-md) {

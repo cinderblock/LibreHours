@@ -44,6 +44,12 @@ export function meta({ matches }: Route.MetaArgs) {
 const WEEKDAY = ["S", "M", "T", "W", "T", "F", "S"];
 
 /** "7:30" — hours and minutes, narrow enough for a phone's day cell. */
+/** Hours to a tenth, for a phone's narrow cell: "1.5h", "8h". */
+function shortHours(seconds: number): string {
+  const tenths = Math.round(seconds / 360) / 10;
+  return `${tenths}h`;
+}
+
 function weekField(form: FormData): { from: string; to: string } {
   const from = stringField(form, "weekStart");
   if (!isWorkDate(from)) throw new UserInputError("That request was incomplete.");
@@ -180,7 +186,7 @@ export default function Timesheets({ loaderData }: Route.ComponentProps) {
 
       <Text size="sm" c="dimmed">
         Tap a day to see or fix that person's time. Submitted days are shaded; a green outline means a timer is
-        running; an orange dot means time on an earlier day still waits to be {approvalRequired ? "approved" : "submitted"}; the
+        running; an orange dot marks a day gone by whose time still waits to be {approvalRequired ? "approved" : "submitted"}; the
         dashed outline is today. People submit their own time — submitting fixes its rate and locks it
         {approvalRequired ? ", and it waits here for approval" : ", ready for accounting"}. Submit for someone
         who hasn't got to it, and reopen a week that needs fixing.
@@ -297,8 +303,15 @@ function PersonRow({
             <Text component="span" size="xs" c="dimmed" className={classes.dayLabel}>
               {WEEKDAY[weekdayOf(d.date)]}
             </Text>
-            <Text component="span" size="sm" c={d.entries ? undefined : "dimmed"}>
-              {text}
+            <Text component="span" size="sm" c={d.entries ? undefined : "dimmed"} className={classes.hours}>
+              {d.entries ? (
+                <>
+                  <span className={classes.long}>{text}</span>
+                  <span className={classes.short}>{shortHours(d.seconds)}</span>
+                </>
+              ) : (
+                text
+              )}
             </Text>
           </>
         );

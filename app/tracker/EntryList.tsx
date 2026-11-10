@@ -5,7 +5,7 @@ import { isEditable, isOwnerReopenable } from "../../src/entry-status.ts";
 import { jobLabel, jobPath } from "../../src/job-names.ts";
 import { formatClock, formatDurationHuman } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
-import { NEEDS_YOU, NEEDS_YOU_TEXT, NeedsYouCallout } from "../components/needs-you.tsx";
+import { NEEDS_YOU_TEXT, NeedsYouCallout, needsYouBadge } from "../components/needs-you.tsx";
 import { ClampedText } from "../components/clamped-text.tsx";
 import { useNow, useTracker, useUndoToast } from "./context.tsx";
 import { EntryEditor } from "./EntryEditor.tsx";
@@ -226,12 +226,12 @@ function EntryRow({
           </Badge>
         )}
         {held && (
-          <Badge size="sm" variant="light" color={NEEDS_YOU}>
+          <Badge size="sm" {...needsYouBadge}>
             already in QuickBooks
           </Badge>
         )}
         {duplicated && (
-          <Badge size="sm" variant="light" color={NEEDS_YOU}>
+          <Badge size="sm" {...needsYouBadge}>
             another line for this job
           </Badge>
         )}

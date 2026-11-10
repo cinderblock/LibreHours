@@ -14,7 +14,7 @@ export class NoAccountingBackend implements AccountingBackend {
   readonly delivery = "none" as const;
 
   async health(): Promise<BackendHealth> {
-    return { ok: true, detail: "Standalone — no accounting system is connected, so approved time stays here." };
+    return { ok: true, detail: "Standalone — no accounting system is connected, so submitted time stays here." };
   }
 
   async perform(): Promise<Performed> {
