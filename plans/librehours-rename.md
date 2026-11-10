@@ -52,7 +52,7 @@ should be folded into LibreBooks.
    renamed to `plans/librehours.md`, cross-references. Finished plans keep their
    historical local paths (`~/git/Personal Projects/time-tracker…`), since those
    record where the work was done.
-2. **Push, then rename the GitHub repo** ← current to `cinderblock/LibreHours` and update
+2. **Push, then rename the GitHub repo** to `cinderblock/LibreHours` and update
    its description. GitHub redirects the old URL for git and the web.
 3. **First CI build after the rename** publishes `ghcr.io/cinderblock/librehours`.
    Check the new package is **public**: ops pulls anonymously.
@@ -60,7 +60,7 @@ should be folded into LibreBooks.
    image, and decide whether to set `APP_NAME` in `compose.yml` (otherwise the
    app's name in production changes from "Time Tracker" to "LibreHours" on the
    next deploy). Renaming the stack, container, data directory and backup units
-   is optional and cosmetic, and can wait.
+   is optional and cosmetic, and can wait. ← current (waiting on the user)
 5. **LibreBooks docs**: refer to the sibling project as LibreHours.
 6. **Local folder** `time-tracker` → `LibreHours`: only with the user's go-ahead,
    because open threads and T3 projects point at the current path.
@@ -74,8 +74,18 @@ should be folded into LibreBooks.
   check had passed: `invalid tag "ghcr.io/cinderblock/LibreHours:0a6d251…":
   repository name must be lowercase`. The workflow now lowercases
   `GITHUB_REPOSITORY` into `IMAGE_PREFIX` in a step.
-- Production relies on the default app name (no `APP_NAME` in compose). An admin
-  may have set a name under Settings, which wins over the default.
+- Production relies on the default app name. Its public manifest
+  (`https://time.twilltech.com/manifest.webmanifest`, read 2026-11-09) says
+  `"name": "Time Tracker"` and `"short_name": "Time"`: no admin has set a name.
+  So the first LibreHours build deployed there renames the app on employees'
+  phones, unless ops sets `APP_NAME` and `APP_SHORT_NAME` first.
+- In ops, Renovate fast-forwards `master` to a new pin, **and that push is the
+  deploy**. Moving `pin.json` to the new image deploys it within one Renovate
+  run. Until the pin moves, production stays on `time-tracker` `8484d05`
+  (`sha256:e6b5d24…`), and no later build reaches it: the old package's
+  `:latest` no longer changes.
+- First good image: `ghcr.io/cinderblock/librehours@sha256:db1a81f4171b30f582d898232226b32b501c51b63734910a1f7b2c88dc401897`,
+  commit `164254d`. It is public, and an anonymous pull token resolves it.
 - Changing the IndexedDB name would orphan each phone's unsynced outbox.
 
 ## Progress log
@@ -83,10 +93,12 @@ should be folded into LibreBooks.
 - [x] Name chosen and checked for conflicts
 - [x] Step 1: code and docs. Typecheck and 516 unit tests pass locally; the
   end-to-end tests run in CI on push
-- [ ] Step 2: push, rename the GitHub repo
-- [ ] Step 3: new package public
-- [ ] Step 4: ops pin and `APP_NAME` (waiting on the user)
-- [ ] Step 5: LibreBooks docs
+- [x] Step 2: the repo is `cinderblock/LibreHours`, with a new description, and
+  the local remote points there. The CI fix is `164254d`
+- [x] Step 3: `ghcr.io/cinderblock/librehours` is public; build `164254d` is green
+- [ ] Step 4: ops pin and `APP_NAME`. The exact change is shown to the user,
+  waiting on their yes (it deploys)
+- [x] Step 5: the LibreBooks README and master plan (decision 16), LibreBooks `259b4e9`
 - [ ] Step 6: local folder (waiting on the user)
 
 ## Open questions for the user
