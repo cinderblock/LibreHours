@@ -94,6 +94,70 @@ Times local (PST).
 - `rbuild`/sentinel isn't allowed for this repo; e2e runs locally under
   `srmctl run --slots 2 --low`.
 
+## UI review rounds
+
+Tour: `bun run ui-tour` (screenshots to `ui-tour/`, ignored). Brief for
+reviewers: a fresh agent per review, given the screenshots and source, told
+the owner wants 10/10 and to mark findings [must]/[nice]. Two reviewers per
+round with different lenses (A: visual/consistency on desktop-light +
+phone-dark; B: usability/copy/a11y on phone-light + desktop-dark).
+
+### Round 1 — A 7/10, B 7/10 — fixes applied (round 2 tour pending)
+
+Done for round 1: Mantine `v8CssVariablesResolver` (dark "light" surfaces
+were brick red, light/subtle text white — Mantine 9's own resolver);
+`NeedsYouCallout` everywhere a "needs you" message was an Alert (notes
+panel, submit day, earlier days, held days, two lines, accounting blocked /
+duplicates, sign-in not set up); yellow retired (offline/join warning gray,
+location problem red); person palette without orange/red/yellow; note
+status badge inline at the end of the text ("in the hours" / "not in the
+hours"); arrival scrolls to the card's top; the problem card says the hold
+and offers "Take the day back"; the header's "to move on" line removed;
+submitted card says when a note isn't in the hours; "Add time manually"
+hidden on a signed-off day; "Stop holding days for this" instead of "Start
+today anyway"; account copy (self passkey text, VAPID → neutral, "Saved."
+beside a disabled Save); "Unknown device" instead of "This device" for an
+unrecognised browser; settings "Use the defaults" shortened; timesheets
+cells "7h 30m" with the orange dot on waiting days; "submitted" instead of
+"signed off"/"frozen"; dialog titles 600/lg; undo line tucked under the
+header. Not done: native time input's "05:00 PM" (the browser's own
+rendering); content widths; H1 color in dark (Mantine's text color).
+
+Consolidated findings (both unless noted), status in brackets:
+
+1. [ ] Arrival on phone: `block: "center"` puts a tall card's top under the
+   sticky header. → `block: "start"` + scroll-margin.
+2. [ ] Phone note rows: the badge squeezes the note to 1–2 words a line
+   ("thermocoup/le"); "ADDED TO TIME" truncates. → badge under the text.
+3. [ ] Dark mode: Mantine's orange `light` variant is a brick/rust that reads
+   as an error. → own needs-you surface: neutral/low-alpha wash, orange
+   border, orange title.
+4. [ ] Needs-you callouts come in 3–4 shapes (filled alert, outlined card,
+   text-only "Submit it"). → one `NeedsYouCallout`, one action button style.
+5. [ ] The loose-note day contradicts itself ("move on" line, "This day is
+   submitted", orange card, "This day is done"); "Take it back" is at the
+   bottom; "Add time manually" offered on a locked day.
+6. [ ] Person colors include orange/red/yellow (calendar). → drop them.
+7. [ ] Terms: "added to time" / "in the hours" / "turn into hours"; admin
+   "approved / signed off / frozen". → "hours" and "submitted".
+8. [ ] Dark mode: red Delete/Remove/Sign out and blue Rename/Add-a-job turn
+   plain white.
+9. [ ] Settings: "Use the defaults (Time Tracker, #1c7ed…" clipped on phone.
+10. [ ] Account: third-person "This person can't sign in" on your own page;
+    VAPID jargon banner (and it's orange-brown in dark); "05:00 PM";
+    "Admin" looks like a subtitle; disabled Save without a reason.
+11. [ ] (B) "Start today anyway" silently flips a setting.
+12. [ ] Admin person: someone else's session labelled "This device";
+    "can't sign in" next to an active session.
+13. [ ] Timesheets: no needs-you mark on unsubmitted past cells; "1:30" vs
+    "1h 30m".
+14. [nice] Dialog titles lighter than field labels; phone dialog buttons
+    stack ragged.
+15. [nice] ~60–80px dead space under the week strip.
+16. [nice] Calendar today column too heavy; green overloaded; "NONE" badge
+    green on Jobs, grey on Accounting; H1s dim in dark; content widths vary;
+    category selects disabled with no reason; date formats vary.
+
 ## Progress log
 
 - [x] 2026-11-09 — Report read, cause confirmed in the op log, plan written.

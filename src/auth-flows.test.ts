@@ -180,7 +180,7 @@ describe("adding a passkey while signed in", () => {
     const added = await finishEnrollment({ ceremonyId, response: second.register(options), userAgent: null });
     expect(added.user.id).toBe(result.user.id);
     expect(added.sessionToken).toBeNull();
-    expect(added.credential.nickname).toBe("This device");
+    expect(added.credential.nickname).toBe("Unknown device");
     expect(listCredentials(result.user.id)).toHaveLength(2);
   });
 

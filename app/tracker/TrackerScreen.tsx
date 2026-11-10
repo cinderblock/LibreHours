@@ -45,8 +45,12 @@ export function TrackerScreen({ model, actingFor }: { model: DayModel; actingFor
       <FlightProvider>
         <Stack gap="lg" maw={1100}>
           <ActingForNotice />
-          <DayHeader />
-          <UndoLine />
+          {/* The undo line keeps its height empty or not (no shifting), so it
+              sits close under the header rather than a full gap below it. */}
+          <Stack gap={4}>
+            <DayHeader />
+            <UndoLine />
+          </Stack>
           <OfflineNotice />
           <HeldDaysNotice />
           {/* Named so it travels on its own when the day changes, rather than

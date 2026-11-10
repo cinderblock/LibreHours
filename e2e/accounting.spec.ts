@@ -115,7 +115,7 @@ test("set up: the first admin, and QuickBooks' lists", async ({ browser }) => {
   await page.getByRole("link", { name: "Accounting" }).click();
   await expect(page.getByText("QuickBooks, through the QB Bridge")).toBeVisible();
   await expect(page.getByText("Connected to QuickBooks (Pretend Company).")).toBeVisible();
-  await expect(page.getByText("Signed-off time is sent when you press Send now.")).toBeVisible();
+  await expect(page.getByText("Submitted time is sent when you press Send now.")).toBeVisible();
   await expect(page.getByText("The lists haven't been fetched yet.")).toBeVisible();
   await expect(page.getByText("Fetch the lists from QuickBooks first.")).toBeVisible();
 
@@ -157,7 +157,7 @@ test("link a person, pick default items, and send submitted time", async () => {
   await page.goto("/admin/accounting");
   await expect(stat("Ready to send")).toContainText("1");
   await expect(stat("Waiting on a fix")).toContainText("1");
-  const waiting = page.getByRole("alert").filter({ hasText: "Signed-off time that can't be sent yet" });
+  const waiting = page.getByRole("alert").filter({ hasText: "Submitted time that can't be sent yet" });
   await expect(waiting).toContainText("The job “Acme › Pop-up job” was made here and isn't in the accounting system yet. (1 entry, 45m)");
   await expect(waiting.getByRole("link", { name: "Link jobs" })).toBeVisible();
 
@@ -271,7 +271,7 @@ test("time taken back after it was sent is flagged, then amended in place", asyn
   await expect(toast("Ivy Integrator: Reopened 2 entries.")).toBeVisible();
   await page.goto("/admin/accounting");
   await expect(page.getByRole("alert").filter({ hasText: "Taken back after being sent" })).toContainText(
-    "QuickBooks still has the old version of these entries until they're signed off again",
+    "QuickBooks still has the old version of these entries until they're submitted again",
   );
 
   await signOffWeek();

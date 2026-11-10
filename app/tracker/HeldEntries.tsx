@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Card, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Button, Card, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -7,7 +7,7 @@ import { isEditable } from "../../src/entry-status.ts";
 import { jobLabel } from "../../src/job-names.ts";
 import { formatClock, formatDurationHuman, formatWorkDate } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
-import { NEEDS_YOU, needsYou, toProblem } from "../components/needs-you.tsx";
+import { NeedsYouCallout, needsYou, toProblem } from "../components/needs-you.tsx";
 import { ClampedText } from "../components/clamped-text.tsx";
 import { MOTION } from "../motion.ts";
 import { useTracker } from "./context.tsx";
@@ -37,8 +37,7 @@ export function HeldDaysNotice() {
   const days = model.heldDays ?? [];
   if (days.length === 0) return null;
   return (
-    <Alert
-      color={NEEDS_YOU}
+    <NeedsYouCallout
       className={appear.appear}
       title={`QuickBooks already has time on ${days.length === 1 ? "a day" : `${days.length} days`} you submitted`}
     >
@@ -54,7 +53,7 @@ export function HeldDaysNotice() {
         {days.length > 5 && ` and ${days.length - 5} more`}. Open a day to compare the two and choose what to do; that time
         isn't sent until you do.
       </Text>
-    </Alert>
+    </NeedsYouCallout>
   );
 }
 

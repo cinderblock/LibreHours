@@ -205,7 +205,7 @@ export function ReportBugButton({ userId }: { userId: number }) {
                     <Text size="xs" c="dimmed">
                       {s.kind === "drawn" ? "The page, as the app drew it" : "Your screen"}
                     </Text>
-                    <Button size="compact-xs" variant="subtle" color="red" onClick={() => remove(s)}>
+                    <Button size="compact-xs" variant="subtle" color="gray" onClick={() => remove(s)}>
                       Remove
                     </Button>
                   </Group>

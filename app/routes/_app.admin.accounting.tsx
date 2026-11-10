@@ -1,4 +1,5 @@
 import { Alert, Anchor, Badge, Button, Card, Group, List, Select, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
+import { NeedsYouCallout } from "../components/needs-you.tsx";
 import { Link, useFetcher } from "react-router";
 
 import { accountingBackendOrError } from "../../src/accounting/index.ts";
@@ -254,7 +255,7 @@ export default function Accounting({ loaderData }: Route.ComponentProps) {
             </Group>
             <Text size="sm">{loaderData.health.detail}</Text>
             <Text size="sm" c="dimmed">
-              To send signed-off time to QuickBooks Desktop, set <code>ACCOUNTING_BACKEND</code> to <code>qb-bridge</code>{" "}
+              To send submitted time to QuickBooks Desktop, set <code>ACCOUNTING_BACKEND</code> to <code>qb-bridge</code>{" "}
               (with <code>QB_BRIDGE_URL</code> and <code>QB_BRIDGE_API_KEY</code>) or <code>qb-webconnector</code> (with{" "}
               <code>QBWC_PASSWORD</code>) in the server's configuration.
             </Text>
@@ -297,8 +298,8 @@ function ConnectionCard({ data }: { data: Data }) {
         {data.delivery === "push" && (
           <Text size="sm" c="dimmed">
             {data.syncEverySeconds
-              ? `Signed-off time is sent ${everyLabel(data.syncEverySeconds)} while QuickBooks is open on its computer. Nothing is lost while it isn't.`
-              : "Signed-off time is sent when you press Send now. Nothing is lost in between."}
+              ? `Submitted time is sent ${everyLabel(data.syncEverySeconds)} while QuickBooks is open on its computer. Nothing is lost while it isn't.`
+              : "Submitted time is sent when you press Send now. Nothing is lost in between."}
           </Text>
         )}
         {data.delivery === "poll" && <WebConnectorSetup />}
@@ -392,7 +393,7 @@ function Queue({ data }: { data: Data }) {
       </SimpleGrid>
 
       {blockedByReason.size > 0 && (
-        <Alert color="yellow" title="Signed-off time that can't be sent yet">
+        <NeedsYouCallout title="Submitted time that can't be sent yet">
           <Stack gap="xs">
             {[...blockedByReason].map(([reason, g]) => (
               <Group key={reason} justify="space-between" wrap="nowrap" align="start">
@@ -406,11 +407,11 @@ function Queue({ data }: { data: Data }) {
               </Group>
             ))}
           </Stack>
-        </Alert>
+        </NeedsYouCallout>
       )}
 
       {overview.duplicates.length > 0 && (
-        <Alert color="yellow" title="QuickBooks already has time for these">
+        <NeedsYouCallout title="QuickBooks already has time for these">
           <Stack gap="sm">
             <Text size="sm">
               For each of these, QuickBooks already has time for the same person, day and job that didn't come from here
@@ -467,8 +468,7 @@ function Queue({ data }: { data: Data }) {
             <Group gap="sm">
               <Button
                 size="compact-sm"
-                variant="light"
-                color="yellow"
+                variant="default"
                 loading={heldBusy}
                 onClick={() => held.submit({ intent: "duplicate-recheck" }, { method: "post" })}
               >
@@ -479,7 +479,7 @@ function Queue({ data }: { data: Data }) {
               </Text>
             </Group>
           </Stack>
-        </Alert>
+        </NeedsYouCallout>
       )}
 
       {overview.failed.length > 0 && (
@@ -510,7 +510,7 @@ function Queue({ data }: { data: Data }) {
         <Alert color="blue" title="Taken back after being sent">
           <Text size="sm">
             QuickBooks still has the old version of {overview.reopened.length === 1 ? "this entry" : "these entries"} until{" "}
-            {overview.reopened.length === 1 ? "it's" : "they're"} signed off again:{" "}
+            {overview.reopened.length === 1 ? "it's" : "they're"} submitted again:{" "}
             {overview.reopened.map((r) => `${r.person} (${formatWorkDate(r.workDate)})`).join(", ")}.
           </Text>
         </Alert>

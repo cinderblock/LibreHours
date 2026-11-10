@@ -135,6 +135,7 @@ export function loadDay(userId: number, workDate: string): DayModel {
     notesHold: person?.notesHoldNextDay ?? true,
     requireNoteOnStop: requireNoteOnStop(),
     requireApproval: requireApproval(),
+    sendsToAccounting: config.accounting.kind !== "none",
     unsubmittedDays,
     unsubmittedWithNotes: datesWithPendingNotes(userId, unsubmittedDays),
     heldDays,

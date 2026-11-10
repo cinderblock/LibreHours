@@ -50,9 +50,11 @@ export function NotificationSettings({ view, isAdmin }: { view: NotificationsVie
         them on for each device you want them on.
       </Text>
       {!view.available && (
-        <Alert color="yellow">
-          This server isn't set up to send notifications yet — an admin needs to add its VAPID keys. Your choices below
-          are kept for when it is.
+        // Not the reader's problem to fix, so neutral, not "needs you".
+        <Alert color="gray">
+          Notifications aren't set up on this server yet, so none will be sent. Your choices below are kept for when
+          they are.
+          {isAdmin && " (To set them up, the server needs VAPID keys; the README says how.)"}
         </Alert>
       )}
       {view.available && view.vapidPublicKey && <ThisDevice devices={view.devices} vapidPublicKey={view.vapidPublicKey} />}
@@ -348,7 +350,7 @@ function PrefsForm({
             ml="xl"
           />
           <Switch
-            label="If today's notes aren't turned into hours yet"
+            label="If today's notes aren't in the hours yet"
             description="When you track with notes."
             checked={p.notesPending.on}
             onChange={(e) => set("notesPending", { on: e.currentTarget.checked })}
@@ -531,10 +533,15 @@ function PrefsForm({
           >
             Save notification settings
           </Button>
-          {dirty && (
+          {dirty ? (
             <Button variant="default" onClick={() => setP(prefs)}>
               Undo changes
             </Button>
+          ) : (
+            // Why Save is greyed out.
+            <Text size="sm" c="dimmed">
+              Saved. Change something above to save again.
+            </Text>
           )}
         </Group>
       </Stack>

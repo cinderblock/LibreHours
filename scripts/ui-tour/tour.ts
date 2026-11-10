@@ -133,7 +133,9 @@ try {
           await page.waitForTimeout(1200);
           if (step.act) await step.act(page);
           await page.waitForTimeout(500);
-          await page.screenshot({ path: join(out, file), fullPage: !step.act });
+          // What the person sees: one screen for a dialog, or for arriving at a
+          // problem (a full-page shot draws the sticky header mid-page there).
+          await page.screenshot({ path: join(out, file), fullPage: !step.act && !step.path.includes("#") });
           index.push(`- \`${file}\`: ${step.what} (${view.name}, ${scheme})`);
         } catch (error) {
           // One broken step shouldn't cost the rest of the tour; say so instead.

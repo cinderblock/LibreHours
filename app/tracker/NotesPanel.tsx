@@ -41,7 +41,7 @@ import { latestTimeOn, noteTimeOn } from "./note-time.ts";
 import { SEND_AFTER_MS, useSendWhenLeft } from "./send-when-left.ts";
 import { useTrackerDraft } from "./tracker-draft.ts";
 import appear from "../components/appear.module.css";
-import { NEEDS_YOU, NEEDS_YOU_TEXT, needsYou, toProblem } from "../components/needs-you.tsx";
+import { NEEDS_YOU, NEEDS_YOU_TEXT, NeedsYouCallout, needsYou, toProblem } from "../components/needs-you.tsx";
 import classes from "./notes.module.css";
 
 /**
@@ -89,41 +89,39 @@ export function NotesPanel() {
     <Stack gap="sm">
       <Title order={3}>Notes</Title>
       {heldBy && (
-        <Alert color={NEEDS_YOU} title={`${formatWorkDate(heldBy.date)} isn't finished`}>
-          <Stack gap="xs">
-            <Text size="sm">
-              Turn {heldBy.count === 1 ? "its note" : `its ${heldBy.count} notes`} into hours, or leave{" "}
-              {heldBy.count === 1 ? "it" : "them"} out, before {isToday ? "today's notes" : `notes on ${thisDay}`} start.
-            </Text>
-            <Group>
+        <NeedsYouCallout
+          title={`${formatWorkDate(heldBy.date)} isn't finished`}
+          actions={
+            <>
               <Button component={Link} to={toProblem(hrefFor(heldBy.date))} size="sm">
                 Go to {formatWorkDate(heldBy.date)}
               </Button>
               {/* The setting is the person's own; an admin acting for them can't change it here. */}
-              {!actingFor && <StartAnyway label={isToday ? "Start today anyway" : "Start this day anyway"} />}
-            </Group>
-          </Stack>
-        </Alert>
+              {!actingFor && <StartAnyway />}
+            </>
+          }
+        >
+          {heldBy.count === 1 ? "A note there isn't" : `${heldBy.count} notes there aren't`} in the hours yet. Sort{" "}
+          {heldBy.count === 1 ? "it" : "them"} out there before {isToday ? "today's notes" : `notes on ${thisDay}`} start.
+        </NeedsYouCallout>
       )}
       {/* Not holding anything back doesn't make it less unfinished: still the
           warning, just without the wall. */}
       {unfinished && !heldBy && (
-        <Alert color={NEEDS_YOU} title={`${formatWorkDate(unfinished.date)} isn't finished`}>
-          <Stack gap="xs">
-            <Text size="sm">
-              It still has {unfinished.count === 1 ? "a note" : `${unfinished.count} notes`} to turn into hours or leave
-              out.{" "}
-              {isToday ? "Today's notes" : "This day's notes"} don't have to wait for it.
-            </Text>
-            <Group>
-              <Button component={Link} to={toProblem(hrefFor(unfinished.date))} size="sm">
-                Go to {formatWorkDate(unfinished.date)}
-              </Button>
-            </Group>
-          </Stack>
-        </Alert>
+        <NeedsYouCallout
+          title={`${formatWorkDate(unfinished.date)} isn't finished`}
+          actions={
+            <Button component={Link} to={toProblem(hrefFor(unfinished.date))} size="sm">
+              Go to {formatWorkDate(unfinished.date)}
+            </Button>
+          }
+        >
+          {unfinished.count === 1 ? "A note there isn't" : `${unfinished.count} notes there aren't`} in the hours yet.{" "}
+          {isToday ? "Today's notes" : "This day's notes"} don't have to wait for it.
+        </NeedsYouCallout>
       )}
-      {submitted && (writable || sections.some((s) => s.pending.length > 0)) && (
+      {/* Said by the marked card instead, when a note here is what's left. */}
+      {submitted && writable && !sections.some((s) => s.pending.length > 0) && (
         <Text c="dimmed" size="sm">
           This day is submitted. Take it back to add notes or turn them into hours.
         </Text>
@@ -161,7 +159,7 @@ export function NotesPanel() {
  * unfinished day is a reminder rather than a wall. The Account page has the
  * same switch, to turn it back on.
  */
-function StartAnyway({ label }: { label: string }) {
+function StartAnyway() {
   const fetcher = useFetcher<{ ok: boolean; error?: string }>();
   const busy = fetcher.state !== "idle";
   return (
@@ -172,10 +170,10 @@ function StartAnyway({ label }: { label: string }) {
         loading={busy}
         onClick={() => fetcher.submit({ intent: "notes-hold", hold: "0" }, { method: "post", action: "/account" })}
       >
-        {label}
+        Let new days start anyway
       </Button>
       <Text size="xs" c="dimmed">
-        From now on, an unfinished day won't hold the next one. Change it back under Your account.
+        From now on an unfinished day only reminds you. Turn it back on under Your account.
       </Text>
       {fetcher.data && !fetcher.data.ok && (
         <Text size="xs" c="red" role="alert">
@@ -399,6 +397,19 @@ function JobSection({
     if (result.ok) undoToast(section.pending.length === 1 ? "Note left out." : "Notes left out.");
   }
 
+  // A loose note whose words were typed into the job's hours by hand (how
+  // the first one of these came about): the hours already say it.
+  const line = section.jobId ? model.entries.find((e) => e.jobId === section.jobId) : undefined;
+  const wordsAlreadyThere =
+    line?.note != null &&
+    section.pending.some((n) => n.kind === "note") &&
+    section.pending.every((n) => n.kind !== "note" || squash(line.note!).includes(squash(n.text)));
+  // A submitted day: taking it back is how a note joins its hours.
+  const reopenable = model.entries.some((e) => isOwnerReopenable(e.status, e.adminApproved));
+  const takeBack = () => dispatch("day.unsubmit", { workDate: model.workDate });
+  // The hold is what keeps the next day shut; say so where it's being fixed.
+  const heldHere = model.mode === "notes" && model.notesHold && model.workDate < model.today;
+
   async function bringBack() {
     await dispatch("notes.bring_back", { noteIds: section.leftOut.map((n) => n.id), at: Date.now() });
   }
@@ -428,17 +439,24 @@ function JobSection({
         </Group>
 
         {problem && (
-          <Text size="sm" fw={500} c={NEEDS_YOU_TEXT}>
-            {section.pending.filter((n) => n.kind === "note").length === 1
-              ? "A note here isn't in the hours. "
-              : section.pending.some((n) => n.kind === "note")
-                ? `${section.pending.filter((n) => n.kind === "note").length} notes here aren't in the hours. `
-                : "This job's time isn't in the hours. "}
+          <Text size="sm">
+            <Text span inherit fw={600} c={NEEDS_YOU_TEXT}>
+              {section.pending.filter((n) => n.kind === "note").length === 1
+                ? "A note here isn't in the hours."
+                : section.pending.some((n) => n.kind === "note")
+                  ? `${section.pending.filter((n) => n.kind === "note").length} notes here aren't in the hours.`
+                  : "This job's time isn't in the hours."}
+            </Text>{" "}
+            {wordsAlreadyThere &&
+              `Its words are already in ${title}'s hours, typed there by hand, so leaving it out only tidies up. `}
             {!section.jobId
               ? "Give it a job, then turn it into hours or leave it out."
               : canTurn
                 ? "Turn it into hours, or leave it out if it was billed some other way."
-                : "Leave it out, or take the day back to add it to the hours."}
+                : reopenable
+                  ? "Take the day back to add it to the hours, or leave it out if it was billed some other way."
+                  : "Leave it out if it was billed some other way, or ask an admin to reopen the day."}
+            {heldHere && " The next day opens once it's done."}
           </Text>
         )}
 
@@ -451,16 +469,24 @@ function JobSection({
             <NoteBox jobName={name!} box={box} paused={hours} autoFocus={focused} onFocused={onFocused} />
           )
         ) : (
-          <Text size="sm" c="dimmed">
-            Give these notes a job (edit each one) to turn them into hours.
-          </Text>
+          !problem && (
+            <Text size="sm" c="dimmed">
+              Give these notes a job (edit each one) to turn them into hours.
+            </Text>
+          )
         )}
 
         {(section.pending.length > 0 || unsent) && (
           <Group>
             {section.jobId && canTurn && (
-              <Button size="sm" variant="light" onClick={() => setHours(true)}>
+              // The way out of the problem is the main action on a marked card.
+              <Button size="sm" variant={problem ? "filled" : "light"} onClick={() => setHours(true)}>
                 {written > 0 ? `Turn ${written} note${written === 1 ? "" : "s"} into hours` : "Turn into hours"}
+              </Button>
+            )}
+            {problem && !canTurn && reopenable && (
+              <Button size="sm" onClick={() => void takeBack()} disabled={busy}>
+                Take the day back
               </Button>
             )}
             {/* Time billed some other way, or that wasn't work: settled without hours. */}
@@ -495,6 +521,9 @@ function JobSection({
 }
 
 type NoteBoxState = ReturnType<typeof useNoteBox>;
+
+/** Text compared loosely: case, spacing and punctuation aside. */
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
 /** Stands in for a note still typed in its box, until it's added. */
 const UNSENT_ID = "unsent";
@@ -747,7 +776,7 @@ function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting
             </div>
           </Group>
           <Group justify="space-between">
-            <Button variant="subtle" color="red" size="xs" onClick={() => void remove()} disabled={pending}>
+            <Button variant="subtle" color="gray" size="xs" onClick={() => void remove()} disabled={pending}>
               {start ? "Remove" : "Delete"}
             </Button>
             <Group gap="xs">
@@ -775,14 +804,27 @@ function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting
   );
   // `overflowWrap` so one long unbroken word shrinks with the row rather than
   // pushing the action off the end of it.
+  // Where the note stands, said at the end of its text, flowing with it like
+  // a word: on a narrow screen it drops to the next line rather than
+  // squeezing the note into a column one word wide.
+  const status = rolled
+    ? { color: "gray", label: note.settled === "kept_in_accounting" ? "kept in accounting" : note.settled === "left_out" ? "left out" : "in the hours" }
+    : problem && note.kind === "note"
+      ? { color: NEEDS_YOU, label: "not in the hours" }
+      : null;
   const what = (
-    <Text
-      size="sm"
-      c={start ? "dimmed" : undefined}
-      fs={start ? "italic" : undefined}
-      style={{ minWidth: 0, overflowWrap: "anywhere" }}
-    >
-      {start ? "Started" : note.text}
+    <Text size="sm" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+      <Text span inherit c={start ? "dimmed" : undefined} fs={start ? "italic" : undefined}>
+        {start ? "Started" : note.text}
+      </Text>
+      {status && (
+        <>
+          {" "}
+          <Badge component="span" size="sm" variant="light" color={status.color} className={classes.status}>
+            {status.label}
+          </Badge>
+        </>
+      )}
     </Text>
   );
 
@@ -798,13 +840,6 @@ function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting
         <Group gap="xs" wrap="nowrap" align="start" style={{ minWidth: 0 }}>
           {when}
           {what}
-          <Badge size="sm" variant="light" color="gray">
-            {note.settled === "kept_in_accounting"
-              ? "kept in accounting"
-              : note.settled === "left_out"
-                ? "left out"
-                : "added to time"}
-          </Badge>
         </Group>
       ) : (
         <UnstyledButton
@@ -816,11 +851,6 @@ function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting
           <Group gap="xs" wrap="nowrap" align="start">
             {when}
             {what}
-            {problem && note.kind === "note" && (
-              <Badge size="sm" variant="light" color={NEEDS_YOU} style={{ flex: "0 0 auto" }}>
-                not in the hours
-              </Badge>
-            )}
             <PencilIcon />
           </Group>
         </UnstyledButton>
@@ -1086,7 +1116,8 @@ function HoursDialog({
             {error}
           </Alert>
         )}
-        <Group justify="flex-end">
+        {/* On a phone the main action goes on top, full width, where a thumb is. */}
+        <Group justify="flex-end" gap="sm" style={narrow ? { flexDirection: "column-reverse", alignItems: "stretch" } : undefined}>
           <Button variant="default" onClick={close}>
             Cancel
           </Button>

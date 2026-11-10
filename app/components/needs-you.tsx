@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { Box, Group, Stack, Text } from "@mantine/core";
+import { type ReactNode, useEffect } from "react";
 import { useLocation } from "react-router";
 
 import classes from "./needs-you.module.css";
@@ -19,8 +20,14 @@ import classes from "./needs-you.module.css";
  */
 export const NEEDS_YOU = "orange";
 export const FAILED = "red";
-/** Text saying what needs doing, in the same color, readable light or dark. */
-export const NEEDS_YOU_TEXT = "var(--mantine-color-orange-light-color)";
+// Deleting and removing are neutral: undo or a confirm step guards them, and a
+// red button that isn't a failure would teach that red can mean anything.
+/**
+ * Orange text, for a short title or label only — never a paragraph: orange
+ * dark enough to read on white (shade 9) in light, and a pale one in dark.
+ * Set in needs-you.module.css.
+ */
+export const NEEDS_YOU_TEXT = "var(--needs-you-text)";
 
 /** The fragment a link to a problem carries: the page lands on what's marked. */
 export const NEEDS_YOU_HASH = "#needs-you";
@@ -45,6 +52,45 @@ export function needsYou(on: boolean, kind: "card" | "row" = "card", className?:
 }
 
 /**
+ * The one shape for "this waits on you, and here's what to do": the same
+ * border and wash as a marked card, an orange title, a line or two, and its
+ * actions — the main one a filled button, as everywhere else. Every such
+ * message in the app is one of these, so it's learned once.
+ */
+export function NeedsYouCallout({
+  title,
+  children,
+  actions,
+  className,
+}: {
+  title: ReactNode;
+  children?: ReactNode;
+  /** Buttons, the main one first. */
+  actions?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Box role="alert" className={[classes.card, classes.callout, className].filter(Boolean).join(" ")}>
+      <Stack gap="xs">
+        <Text fw={600} c={NEEDS_YOU_TEXT}>
+          {title}
+        </Text>
+        {children && (
+          <Text size="sm" component="div">
+            {children}
+          </Text>
+        )}
+        {actions && (
+          <Group gap="sm" align="flex-start">
+            {actions}
+          </Group>
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
+/**
  * Arriving by a `toProblem` link: once the page has drawn, the first thing
  * marked as needing the person is scrolled to the middle of the screen,
  * takes focus (so a screen reader says what it is), and pulses briefly.
@@ -60,7 +106,10 @@ export function useArriveAtProblem(ready: boolean) {
       const target = document.querySelector<HTMLElement>("[data-needs-you]");
       if (!target) return;
       const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      target.scrollIntoView({ block: "center", behavior: smooth ? "smooth" : "auto" });
+      // Its top, not its middle: a card taller than half a phone screen,
+      // centred, puts its title and what it says under the sticky header.
+      // The card's scroll-margin keeps it clear of that header.
+      target.scrollIntoView({ block: "start", behavior: smooth ? "smooth" : "auto" });
       target.focus({ preventScroll: true });
       target.setAttribute("data-arrived", "");
       window.setTimeout(() => target.removeAttribute("data-arrived"), 2400);

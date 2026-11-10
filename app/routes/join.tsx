@@ -96,7 +96,7 @@ function JoinForm({ purpose, role, nameHint, targetName, signedInAs, targetIsSig
       </Text>
 
       {signedInAs && !targetIsSignedInUser && (
-        <Alert color="yellow">
+        <Alert color="gray">
           This browser is signed in as {signedInAs.name}. Continuing signs {signedInAs.name} out here and signs in
           as {needsName ? "the new account" : targetName} instead.
         </Alert>

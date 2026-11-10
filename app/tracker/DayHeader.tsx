@@ -25,6 +25,7 @@ function ArrowButton({
   facing,
   move,
   double = false,
+  attention = false,
 }: {
   to: string | null;
   label: string;
@@ -32,8 +33,15 @@ function ArrowButton({
   /** How the screen moves when pressed; a day's step off the end of the strip is a week move. */
   move: DayMove;
   double?: boolean;
+  /** A day this way, out of the strip's view, needs the person: it's marked here. */
+  attention?: boolean;
 }) {
-  const icon = <Chevron towards={facing} double={double} />;
+  const icon = (
+    <>
+      <Chevron towards={facing} double={double} />
+      {attention && <span className={classes.needsYouArrow} aria-hidden />}
+    </>
+  );
   if (!to) {
     return (
       <ActionIcon variant="default" size="lg" aria-label={label} disabled>
@@ -73,6 +81,11 @@ export function DayHeader() {
   const open = model.open;
   const running = open && now !== undefined ? liveSeconds(open, now) - open.durationSeconds : 0;
   const week = model.week.map((d) => (open && d.date === open.workDate ? { ...d, seconds: d.seconds + running } : d));
+  // A day before this week that waits on the person: its dot can't show in
+  // the strip, so the way back to it carries one.
+  const earlierNeedsYou = [model.notesToRollUp?.date, ...model.unsubmittedDays, ...(model.heldDays ?? [])].some(
+    (d) => d != null && d < weekStart,
+  );
   // The day shown is read from what's on screen, which changes as the person
   // fixes it; the other days are as the server last said.
   const hereNeedsYou =
@@ -84,7 +97,14 @@ export function DayHeader() {
     <Stack gap="sm">
       <Group justify="space-between" wrap="nowrap" gap="xs">
         <Group gap={6} wrap="nowrap">
-          <ArrowButton to={hrefFor(steps.previousWeek)} label="Previous week" facing="left" move={moveTo(steps.previousWeek)} double />
+          <ArrowButton
+            to={hrefFor(steps.previousWeek)}
+            label={earlierNeedsYou ? "Previous week (an earlier day needs you)" : "Previous week"}
+            facing="left"
+            move={moveTo(steps.previousWeek)}
+            double
+            attention={earlierNeedsYou}
+          />
           <ArrowButton to={hrefFor(steps.previousDay)} label="Previous day" facing="left" move={moveTo(steps.previousDay)} />
         </Group>
         <Stack gap={0} align="center" data-day-part="title">
@@ -126,11 +146,8 @@ export function DayHeader() {
           />
         </Group>
       </Group>
-      {heldHere && workDate < today && (
-        <Text size="xs" c="dimmed" ta="center">
-          Turn this day's notes into hours, or leave them out, to move on.
-        </Text>
-      )}
+      {/* Why the way forward is shut is said on the notes holding it
+          (NotesPanel), where it can be fixed. */}
 
       <SimpleGrid cols={7} spacing={4} data-day-part="week">
         {week.map((d) => {
@@ -150,7 +167,7 @@ export function DayHeader() {
               <Text size="xs" c="dimmed">
                 {WEEKDAY[weekdayOf(d.date)]}
               </Text>
-              <Text size="sm" fw={selected ? 700 : 500}>
+              <Text size="sm" fw={selected ? 700 : 500} data-date>
                 {Number(d.date.slice(8))}
               </Text>
               <Text size="xs" c={d.seconds ? undefined : "dimmed"}>

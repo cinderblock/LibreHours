@@ -2,6 +2,7 @@ import { Badge, Button, Card, Group, Stack, Text, TextInput } from "@mantine/cor
 import { useState } from "react";
 import { useFetcher } from "react-router";
 
+import { NeedsYouCallout } from "./needs-you.tsx";
 import { useActionFeedback } from "./use-action-feedback.ts";
 
 /** A passkey as loaders hand it to the page: display strings only. */
@@ -29,13 +30,24 @@ export function PasskeyList({
   passkeys,
   action,
   canRemoveLast,
+  self = false,
 }: {
   passkeys: PasskeyView[];
   action: string;
   canRemoveLast: boolean;
+  /** The list is the reader's own (Your account), so it speaks to them. */
+  self?: boolean;
 }) {
   if (passkeys.length === 0) {
-    return <Text c="dimmed">No passkeys. This person can't sign in until they use a device link.</Text>;
+    return self ? (
+      <NeedsYouCallout title="You have no passkey yet">
+        Add one below. Without it you can't sign in again once this session ends.
+      </NeedsYouCallout>
+    ) : (
+      <NeedsYouCallout title="No passkeys">
+        Once their current sign-in ends, they'll need a new device link to get back in.
+      </NeedsYouCallout>
+    );
   }
   return (
     <Stack gap="sm">
@@ -96,7 +108,7 @@ function PasskeyRow({ passkey, action, removable }: { passkey: PasskeyView; acti
               Rename
             </Button>
             {removable && !confirming && (
-              <Button size="xs" variant="subtle" color="red" onClick={() => setConfirming(true)}>
+              <Button size="xs" variant="subtle" color="gray" onClick={() => setConfirming(true)}>
                 Remove
               </Button>
             )}
@@ -166,7 +178,7 @@ export function SessionList({
               <fetcher.Form method="post" action={action}>
                 <input type="hidden" name="intent" value="revoke-session" />
                 <input type="hidden" name="sessionId" value={s.id} />
-                <Button type="submit" size="xs" variant="subtle" color="red" loading={fetcher.state !== "idle"}>
+                <Button type="submit" size="xs" variant="subtle" color="gray" loading={fetcher.state !== "idle"}>
                   Sign out
                 </Button>
               </fetcher.Form>

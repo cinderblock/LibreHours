@@ -1,4 +1,5 @@
 import { Alert, Button, Stack, Text } from "@mantine/core";
+import { NEEDS_YOU } from "../components/needs-you.tsx";
 import { useEffect, useState } from "react";
 import { redirect, useNavigate } from "react-router";
 
@@ -52,7 +53,7 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
   return (
     <AuthCard heading="Sign in">
       {setupPending && (
-        <Alert color="yellow" title="Not set up yet">
+        <Alert color={NEEDS_YOU} title="Not set up yet">
           No admin exists yet. The server prints a one-time setup link to its log when it starts; open that
           link to create the first admin. On the server, <code>bun run admin-link</code> prints a fresh one.
         </Alert>

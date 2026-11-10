@@ -90,7 +90,7 @@ export default function Account({ loaderData }: Route.ComponentProps) {
     <Stack gap="xl" maw={640}>
       <Stack gap={4}>
         <Title order={2}>Your account</Title>
-        <Text c="dimmed">{role === "admin" ? "Admin" : "Employee"}</Text>
+        <Text c="dimmed">{role === "admin" ? "You're an admin." : "You track your own time here."}</Text>
       </Stack>
 
       <RenameSelf name={name} />
@@ -105,7 +105,7 @@ export default function Account({ loaderData }: Route.ComponentProps) {
           Each passkey lets one device (or one password manager) sign in. Keep at least two if you can, so losing a
           phone doesn't lock you out.
         </Text>
-        <PasskeyList passkeys={passkeys} action="/account" canRemoveLast={false} />
+        <PasskeyList passkeys={passkeys} action="/account" canRemoveLast={false} self />
         <AddPasskeyButton />
       </Stack>
 
@@ -146,7 +146,7 @@ function RenameSelf({ name }: { name: string }) {
             style={{ flex: 1 }}
             autoComplete="name"
           />
-          <Button type="submit" variant="light" loading={fetcher.state !== "idle"}>
+          <Button type="submit" loading={fetcher.state !== "idle"}>
             Save
           </Button>
         </Group>
@@ -290,7 +290,7 @@ function LocationSetting() {
             Only on this device, and only while the app is open — it can't follow you around in the background.
             Your admins can see these locations with your time.
           </Text>
-          {problem && <Alert color="yellow">{problem}</Alert>}
+          {problem && <Alert color="red">{problem}</Alert>}
         </Stack>
       </Card>
     </Stack>

@@ -10,6 +10,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { NEEDS_YOU_TEXT } from "../components/needs-you.tsx";
 import { useEffect, useState } from "react";
 import { Link, useFetcher } from "react-router";
 
@@ -121,7 +122,15 @@ export default function People({ loaderData }: Route.ComponentProps) {
                   )}
                 </Group>
                 <Text size="sm" c="dimmed">
-                  {p.passkeys} passkey{p.passkeys === 1 ? "" : "s"} · last active {p.lastSeen}
+                  {p.passkeys === 0 ? (
+                    // Can't sign in again once their sign-in ends: needs someone.
+                    <Text span inherit fw={600} c={NEEDS_YOU_TEXT}>
+                      No passkey
+                    </Text>
+                  ) : (
+                    `${p.passkeys} passkey${p.passkeys === 1 ? "" : "s"}`
+                  )}{" "}
+                  · last active {p.lastSeen}
                 </Text>
               </Stack>
               <Text c="dimmed" aria-hidden>
@@ -227,7 +236,7 @@ function OpenLinkRow({ link }: { link: { id: number; description: string; create
         <fetcher.Form method="post">
           <input type="hidden" name="intent" value="revoke-link" />
           <input type="hidden" name="registrationId" value={link.id} />
-          <Button type="submit" size="xs" variant="subtle" color="red" loading={fetcher.state !== "idle"}>
+          <Button type="submit" size="xs" variant="subtle" color="gray" loading={fetcher.state !== "idle"}>
             Revoke
           </Button>
         </fetcher.Form>

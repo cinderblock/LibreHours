@@ -93,16 +93,17 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
           searchable
           w={220}
         />
-        <Select
-          label="Category"
-          placeholder="Any"
-          data={data.categoryOptions}
-          value={data.categoryId != null ? String(data.categoryId) : null}
-          onChange={(v) => setParam("category", v)}
-          clearable
-          disabled={data.categoryOptions.length === 0}
-          w={180}
-        />
+        {data.categoryOptions.length > 0 && (
+          <Select
+            label="Category"
+            placeholder="Any"
+            data={data.categoryOptions}
+            value={data.categoryId != null ? String(data.categoryId) : null}
+            onChange={(v) => setParam("category", v)}
+            clearable
+            w={180}
+          />
+        )}
       </Group>
 
       {data.people.length > 1 && (

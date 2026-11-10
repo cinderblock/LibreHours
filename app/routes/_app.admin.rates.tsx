@@ -411,7 +411,7 @@ function CategoryRow({
             <Button size="compact-xs" variant="subtle" onClick={() => setRenaming(true)}>
               Rename
             </Button>
-            <Button size="compact-xs" variant="subtle" color="red" onClick={() => setConfirming(true)}>
+            <Button size="compact-xs" variant="subtle" color="gray" onClick={() => setConfirming(true)}>
               Delete
             </Button>
           </Group>

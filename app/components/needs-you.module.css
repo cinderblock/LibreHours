@@ -9,11 +9,32 @@
  * settles. Without motion, the ring just shows for the same time.
  */
 
+:global(:root) {
+  --needs-you-text: var(--mantine-color-orange-9);
+}
+
+:global([data-mantine-color-scheme="dark"]) {
+  --needs-you-text: var(--mantine-color-orange-4);
+}
+
 .card {
   border-color: var(--mantine-color-orange-filled) !important;
   box-shadow: inset 0 0 0 1px var(--mantine-color-orange-filled);
-  background-color: color-mix(in srgb, var(--mantine-color-orange-light) 55%, var(--mantine-color-body));
+  /* A faint orange over whatever's under it — light or dark, never brown. */
+  background-color: var(--mantine-color-orange-light);
   scroll-margin-block: 96px;
+}
+
+/* A callout is a marked card that isn't a Mantine Card: give it the card's frame. */
+.callout {
+  border: 1px solid;
+  border-radius: var(--mantine-radius-md);
+  padding: var(--mantine-spacing-md);
+}
+
+/* In dark, a stronger wash goes brown; a faint one stays orange. */
+[data-mantine-color-scheme="dark"] .card {
+  background-color: color-mix(in srgb, var(--mantine-color-orange-filled) 9%, transparent);
 }
 
 .row {

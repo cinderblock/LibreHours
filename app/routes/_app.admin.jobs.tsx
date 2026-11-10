@@ -1,4 +1,5 @@
 import { Anchor, Badge, Box, Button, Card, Group, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import { NEEDS_YOU } from "../components/needs-you.tsx";
 import { useEffect, useRef, useState } from "react";
 import { Link, useFetcher } from "react-router";
 
@@ -151,7 +152,8 @@ export default function Jobs({ loaderData }: Route.ComponentProps) {
         <Stack gap="xs">
           <Group justify="space-between">
             <Text fw={500}>Accounting backend</Text>
-            <Badge color={backend.ok ? "green" : "yellow"}>{backend.kind}</Badge>
+            {/* As on the Accounting page: grey when there's none, green only when connected. */}
+            <Badge color={backend.kind === "none" ? "gray" : backend.ok ? "green" : NEEDS_YOU}>{backend.kind}</Badge>
           </Group>
           <Text size="sm">
             Time is booked to jobs, and every job belongs to a customer. A customer groups its jobs and can't take time
@@ -461,7 +463,7 @@ function NameLine({ job, label, fetcher }: { job: JobItem; label: string; fetche
         {job.provisional && !job.remote && (
           <Badge
             size="sm"
-            color="yellow"
+            color={NEEDS_YOU}
             variant="light"
             component={Link}
             to="/admin/accounting#jobs"

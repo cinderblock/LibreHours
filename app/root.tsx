@@ -5,6 +5,7 @@ import {
   type MantineColorsTuple,
   createTheme,
   mantineHtmlProps,
+  v8CssVariablesResolver,
 } from "@mantine/core";
 import { generateColorsMap } from "@mantine/colors-generator";
 import { Notifications } from "@mantine/notifications";
@@ -173,6 +174,8 @@ export default function App({ loaderData }: Route.ComponentProps) {
           Button: { defaultProps: { size: "md" } },
           // Every dialog opens and closes the same way — see app/motion.ts.
           Modal: {
+            // A dialog's title outranks its fields' labels.
+            styles: { title: { fontWeight: 600, fontSize: "var(--mantine-font-size-lg)" } },
             defaultProps: {
               transitionProps: {
                 transition: "pop",
@@ -196,7 +199,11 @@ export default function App({ loaderData }: Route.ComponentProps) {
   }, []);
 
   return (
-    <MantineProvider theme={theme} defaultColorScheme="auto">
+    // Mantine 9's own dark "light" surfaces are a darkened shade 9 — orange
+    // comes out brick red, which reads as an error — and its light/subtle
+    // text is near white, so a red Delete or a blue link looks like a label.
+    // Its v8 resolver keeps tinted surfaces and colored text in both themes.
+    <MantineProvider theme={theme} defaultColorScheme="auto" cssVariablesResolver={v8CssVariablesResolver}>
       <Notifications position="bottom-center" />
       <Outlet />
       <UpdateReady />

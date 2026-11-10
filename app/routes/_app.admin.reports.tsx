@@ -135,15 +135,16 @@ export default function Reports({ loaderData }: Route.ComponentProps) {
               clearable
               searchable
             />
-            <Select
-              label="Category"
-              placeholder="Any"
-              data={loaderData.categories}
-              value={query.categoryId != null ? String(query.categoryId) : null}
-              onChange={(v) => set({ category: v })}
-              clearable
-              disabled={loaderData.categories.length === 0}
-            />
+            {loaderData.categories.length > 0 && (
+              <Select
+                label="Category"
+                placeholder="Any"
+                data={loaderData.categories}
+                value={query.categoryId != null ? String(query.categoryId) : null}
+                onChange={(v) => set({ category: v })}
+                clearable
+              />
+            )}
             <Select
               label="Job"
               placeholder="Any job"
@@ -240,7 +241,7 @@ export default function Reports({ loaderData }: Route.ComponentProps) {
       )}
 
       <Text size="sm" c="dimmed">
-        Submitted time is costed at the rate frozen when it was submitted; everything else at today's rates, so its
+        Submitted time is costed at the rate it had when it was submitted; everything else at today's rates, so its
         cost can still change. Running timers count up to now. Set rates under Rates &amp; categories.
       </Text>
     </Stack>

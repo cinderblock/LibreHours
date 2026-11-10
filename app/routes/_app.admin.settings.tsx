@@ -160,9 +160,14 @@ function BrandingCard({ data }: { data: Data }) {
                 disabled={busy}
                 onClick={() => save({ name: "", shortName: "", themeColor: "" })}
               >
-                Use the defaults ({data.defaults.name}, {data.defaults.themeColor})
+                Use the defaults
               </Button>
             </Group>
+            {/* Said beside, not in the button: a colour code made the label too
+                long for a phone, and it was cut off. */}
+            <Text size="xs" c="dimmed">
+              The defaults are “{data.defaults.name}” and {data.defaults.themeColor}.
+            </Text>
           </Stack>
         </form>
       </Card>

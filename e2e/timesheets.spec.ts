@@ -233,7 +233,7 @@ test("the employee sees submitted time locked, and takes the day back themselves
   expect(await cutOff()).toBe(true);
 
   // Their own submission is theirs to withdraw — no admin involved.
-  await page.getByRole("button", { name: "Take it back" }).click();
+  await page.getByRole("button", { name: "Take the day back" }).click();
   await expect(framing.getByRole("button", { name: "Delete" })).toBeVisible();
   await expect(page.getByText("1 entry not submitted")).toBeVisible();
 });
@@ -257,7 +257,7 @@ test("approvals can be switched on, and then time waits for an admin", async () 
   const framing = theirs.locator(".mantine-Card-root", { hasText: "Framing" });
   await expect(framing.getByText("approved", { exact: true })).toBeVisible();
   await expect(framing.getByText("Locked — an admin can reopen it for changes.")).toBeVisible();
-  await expect(theirs.getByRole("button", { name: "Take it back" })).toHaveCount(0);
+  await expect(theirs.getByRole("button", { name: "Take the day back" })).toHaveCount(0);
 });
 
 test("an admin's own day shows everyone else's time beside it", async () => {

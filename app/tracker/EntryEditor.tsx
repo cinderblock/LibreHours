@@ -374,7 +374,7 @@ export function EntryEditor({
 
           <Group justify="space-between">
             {entry ? (
-              <Button variant="subtle" color="red" onClick={() => void remove()} disabled={busy}>
+              <Button variant="subtle" color="gray" onClick={() => void remove()} disabled={busy}>
                 Delete
               </Button>
             ) : (

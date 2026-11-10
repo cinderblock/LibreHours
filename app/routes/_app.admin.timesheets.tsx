@@ -44,11 +44,6 @@ export function meta({ matches }: Route.MetaArgs) {
 const WEEKDAY = ["S", "M", "T", "W", "T", "F", "S"];
 
 /** "7:30" — hours and minutes, narrow enough for a phone's day cell. */
-function clockHours(seconds: number): string {
-  const minutes = Math.round(seconds / 60);
-  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
-}
-
 function weekField(form: FormData): { from: string; to: string } {
   const from = stringField(form, "weekStart");
   if (!isWorkDate(from)) throw new UserInputError("That request was incomplete.");
@@ -119,21 +114,22 @@ export default function Timesheets({ loaderData }: Route.ComponentProps) {
       <WeekNav weekStart={weekStart} thisWeek={thisWeek} title="Timesheets" />
 
       <Group justify="space-between" align="end" gap="sm">
-        <Select
-          label="Category"
-          placeholder="Everyone"
-          data={categories}
-          value={categoryId != null ? String(categoryId) : null}
-          clearable
-          disabled={categories.length === 0}
-          onChange={(value) => {
-            const next = new URLSearchParams(params);
-            if (value) next.set("category", value);
-            else next.delete("category");
-            setParams(next);
-          }}
-          w={220}
-        />
+        {categories.length > 0 && (
+          <Select
+            label="Category"
+            placeholder="Everyone"
+            data={categories}
+            value={categoryId != null ? String(categoryId) : null}
+            clearable
+            onChange={(value) => {
+              const next = new URLSearchParams(params);
+              if (value) next.set("category", value);
+              else next.delete("category");
+              setParams(next);
+            }}
+            w={220}
+          />
+        )}
         <Group gap="sm" align="center">
           <Text size="sm" c="dimmed">
             {formatDurationHuman(weekTotal)} this week
@@ -184,7 +180,7 @@ export default function Timesheets({ loaderData }: Route.ComponentProps) {
 
       <Text size="sm" c="dimmed">
         Tap a day to see or fix that person's time. Submitted days are shaded; a green outline means a timer is
-        running. People submit their own time — submitting freezes its rate and locks it
+        running; an orange dot means time on that day still waits to be {approvalRequired ? "approved" : "submitted"}. People submit their own time — submitting fixes its rate and locks it
         {approvalRequired ? ", and it waits here for approval" : " and sends it to accounting"}. Submit for someone
         who hasn't got to it, and reopen a week that needs fixing.
       </Text>
@@ -280,7 +276,11 @@ function PersonRow({
           d.unsubmitted === 0 &&
           (approvalRequired ? d.submitted === 0 && d.approved > 0 : d.submitted + d.approved > 0);
         const state = d.running ? "running" : done ? "approved" : "open";
-        const text = d.entries ? clockHours(d.seconds) : "–";
+        // The same "7h 30m" as the totals and every other screen.
+        const text = d.entries ? formatDurationHuman(d.seconds) : "–";
+        // Time on a day gone by that's still waiting on someone: the app's
+        // one "needs you" mark, as on the person's own week strip.
+        const needsYou = d.date < today && (approvalRequired ? d.unsubmitted + d.submitted : d.unsubmitted) > 0;
         // A day with a timer still on it isn't reported as done, whatever the
         // rest of it says.
         const said = d.unsubmitted
@@ -312,6 +312,7 @@ function PersonRow({
             className={classes.day}
             data-state={state}
             data-today={d.date === today}
+            data-needs-you-day={needsYou || undefined}
             aria-label={label}
           >
             {content}

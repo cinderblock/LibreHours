@@ -207,8 +207,8 @@ describe("describeUserAgent", () => {
       "Mac · Safari",
     ],
     ["Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0", "Linux PC · Firefox"],
-    ["curl/8.0", "This device"],
-    [null, "This device"],
+    ["curl/8.0", "Unknown device"],
+    [null, "Unknown device"],
   ])("%p → %p", (ua, expected) => {
     expect(describeUserAgent(ua)).toBe(expected);
   });

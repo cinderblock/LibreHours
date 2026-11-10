@@ -1,11 +1,11 @@
-import { Alert, Anchor, Button, Card, Group, Stack, Text } from "@mantine/core";
+import { Anchor, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router";
 
 import { isOwnerReopenable } from "../../src/entry-status.ts";
 import { formatWorkDate } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
-import { NEEDS_YOU, needsYou, toProblem } from "../components/needs-you.tsx";
+import { NEEDS_YOU_TEXT, NeedsYouCallout, needsYou, toProblem } from "../components/needs-you.tsx";
 import { useTracker } from "./context.tsx";
 import { isPendingNote } from "./model.ts";
 
@@ -38,6 +38,8 @@ export function SubmitDay() {
   const jobsWithNotes = new Set(model.notes.filter(isPendingNote).map((n) => n.jobId)).size;
   const earlierWithNotes = (model.unsubmittedWithNotes ?? []).filter((d) => model.unsubmittedDays.includes(d));
   const [asking, setAsking] = useState<"day" | "earlier" | null>(null);
+  // Written notes on this day that never made it into its hours.
+  const loose = model.notes.filter((n) => isPendingNote(n) && n.kind === "note").length;
   // Not submitted on a day gone by: that's what's waiting on this day.
   const overdue = unsubmitted.length > 0 && model.workDate < model.today;
 
@@ -62,7 +64,7 @@ export function SubmitDay() {
             {unsubmitted.length > 0 ? (
               <>
                 <Group justify="space-between" wrap="wrap" gap="sm">
-                  <Text fw={500}>
+                  <Text fw={overdue ? 600 : 500} c={overdue ? NEEDS_YOU_TEXT : undefined}>
                     {unsubmitted.length} {unsubmitted.length === 1 ? "entry" : "entries"} not submitted
                   </Text>
                   <Button
@@ -74,31 +76,33 @@ export function SubmitDay() {
                   </Button>
                 </Group>
                 {asking === "day" && (
-                  <Alert color={NEEDS_YOU} title="Some notes aren't hours yet" className={appear.appear}>
-                    <Stack gap="xs">
-                      <Text size="sm">
-                        {jobsWithNotes === 1 ? "A job" : `${jobsWithNotes} jobs`} on this day still{" "}
-                        {jobsWithNotes === 1 ? "has" : "have"} notes not turned into hours. Turn them into hours, or
-                        leave them out if their time was billed some other way. Submitting without them leaves them
-                        waiting.
-                      </Text>
-                      <Group>
-                        <Button size="compact-sm" variant="light" color={NEEDS_YOU} onClick={submitDay}>
-                          Submit anyway
-                        </Button>
-                        <Button size="compact-sm" variant="default" onClick={() => setAsking(null)}>
+                  <NeedsYouCallout
+                    title="Some notes aren't in the hours yet"
+                    className={appear.appear}
+                    actions={
+                      <>
+                        <Button size="sm" variant="default" onClick={() => setAsking(null)}>
                           Not yet
                         </Button>
-                      </Group>
-                    </Stack>
-                  </Alert>
+                        <Button size="sm" variant="subtle" color="gray" onClick={submitDay}>
+                          Submit anyway
+                        </Button>
+                      </>
+                    }
+                  >
+                    {jobsWithNotes === 1 ? "A job" : `${jobsWithNotes} jobs`} on this day still{" "}
+                    {jobsWithNotes === 1 ? "has" : "have"} notes not in the hours. Turn them into hours, or leave them
+                    out if their time was billed some other way. Submitting without them leaves them waiting.
+                  </NeedsYouCallout>
                 )}
                 <Text size="sm" c="dimmed">
                   {running
                     ? "Stop the timer first — a running timer can't be submitted."
                     : model.requireApproval
                       ? "Submitting locks this time and sends it for approval. You can take it back until an admin approves it."
-                      : "Submitting locks this time and sends it to accounting. You can take it back if you need to fix something."}
+                      : model.sendsToAccounting
+                        ? "Submitting locks this time and sends it to accounting. You can take it back if you need to fix something."
+                        : "Submitting locks this time. You can take it back if you need to fix something."}
                 </Text>
               </>
             ) : (
@@ -110,14 +114,16 @@ export function SubmitDay() {
                   </Text>
                   {mine.length > 0 && (
                     <Button variant="default" onClick={takeBack} loading={pending}>
-                      Take it back
+                      Take the day back
                     </Button>
                   )}
                 </Group>
                 <Text size="sm" c="dimmed">
                   {mine.length === 0
                     ? `An admin has approved this day, so it can't be changed here. Ask them to reopen it if ${who === "you" ? "you need" : `${who} needs`} to fix something.`
-                    : "This day is done. Take it back to change anything, then submit it again."}
+                    : loose > 0
+                      ? `${loose === 1 ? "A note" : `${loose} notes`} on this day ${loose === 1 ? "isn't" : "aren't"} in the hours (see Notes). Take the day back to add ${loose === 1 ? "it" : "them"}, then submit it again.`
+                      : "This day is done. Take it back to change anything, then submit it again."}
                 </Text>
               </>
             )}
@@ -126,8 +132,7 @@ export function SubmitDay() {
       )}
 
       {model.unsubmittedDays.length > 0 && (
-        <Alert
-          color={NEEDS_YOU}
+        <NeedsYouCallout
           className={appear.appear}
           title={`${model.unsubmittedDays.length} earlier ${model.unsubmittedDays.length === 1 ? "day" : "days"} not submitted`}
         >
@@ -143,18 +148,22 @@ export function SubmitDay() {
               ))}
               {model.unsubmittedDays.length > 5 && ` and ${model.unsubmittedDays.length - 5} more`}.
             </Text>
-            <Group>
+            <Group gap="sm">
               <Button
-                size="compact-sm"
-                variant="light"
-                color={NEEDS_YOU}
+                size="sm"
+                variant={asking === "earlier" ? "subtle" : "filled"}
+                color={asking === "earlier" ? "gray" : undefined}
                 onClick={earlierWithNotes.length > 0 && asking !== "earlier" ? () => setAsking("earlier") : submitEarlier}
                 loading={pending}
               >
-                {asking === "earlier" ? "Submit anyway" : `Submit ${model.unsubmittedDays.length === 1 ? "it" : "them all"}`}
+                {asking === "earlier"
+                  ? "Submit anyway"
+                  : model.unsubmittedDays.length === 1
+                    ? `Submit ${formatWorkDate(model.unsubmittedDays[0]!)}`
+                    : `Submit all ${model.unsubmittedDays.length}`}
               </Button>
               {asking === "earlier" && (
-                <Button size="compact-sm" variant="default" onClick={() => setAsking(null)}>
+                <Button size="sm" variant="default" onClick={() => setAsking(null)}>
                   Not yet
                 </Button>
               )}
@@ -174,7 +183,7 @@ export function SubmitDay() {
               </Text>
             )}
           </Stack>
-        </Alert>
+        </NeedsYouCallout>
       )}
     </Stack>
   );

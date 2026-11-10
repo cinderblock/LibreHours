@@ -240,7 +240,7 @@ function AccessCard({
               required
               style={{ flex: 1 }}
             />
-            <Button type="submit" variant="light" loading={rename.state !== "idle"}>
+            <Button type="submit" loading={rename.state !== "idle"}>
               Save
             </Button>
           </Group>
@@ -321,7 +321,7 @@ function DeviceLinkCard({
             allowDeselect={false}
           />
           <Group>
-            <Button type="submit" variant="light" disabled={!active} loading={fetcher.state !== "idle"}>
+            <Button type="submit" disabled={!active} loading={fetcher.state !== "idle"}>
               Create device link
             </Button>
           </Group>

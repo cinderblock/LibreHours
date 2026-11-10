@@ -1,11 +1,11 @@
-import { Alert, Anchor, Badge, Button, Card, Group, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Anchor, Badge, Button, Card, Group, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 import { type MouseEvent, useState } from "react";
 
 import { isEditable, isOwnerReopenable } from "../../src/entry-status.ts";
 import { jobLabel, jobPath } from "../../src/job-names.ts";
 import { formatClock, formatDurationHuman } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
-import { NEEDS_YOU, NEEDS_YOU_TEXT } from "../components/needs-you.tsx";
+import { NEEDS_YOU, NEEDS_YOU_TEXT, NeedsYouCallout } from "../components/needs-you.tsx";
 import { ClampedText } from "../components/clamped-text.tsx";
 import { useNow, useTracker, useUndoToast } from "./context.tsx";
 import { EntryEditor } from "./EntryEditor.tsx";
@@ -63,6 +63,8 @@ export function EntryList() {
         <CombineLines key={group[0]!.id} lines={group} />
       ))}
 
+      {/* Even on a submitted day: time added joins its line, which is taken
+          back and sent again (the amend path). */}
       <Group>
         <Button variant="light" onClick={() => setAdding(true)}>
           Add time manually
@@ -131,14 +133,11 @@ function CombineLines({ lines }: { lines: EntryView[] }) {
   }
 
   return (
-    <Alert color={NEEDS_YOU} title={`${jobLabel(first.jobName)} has ${lines.length} lines on this day`}>
-      <Stack gap="xs">
-        <Text size="sm">
-          Hours for one job and day go on one line now; these were made before that. Combining adds them up and joins
-          their notes. It can't be undone.
-        </Text>
-        <Group gap="xs">
-          <Button size="sm" variant="light" color={NEEDS_YOU} onClick={() => void combine()} loading={busy} disabled={!!blocked || pending}>
+    <NeedsYouCallout
+      title={`${jobLabel(first.jobName)} has ${lines.length} lines on this day`}
+      actions={
+        <>
+          <Button size="sm" onClick={() => void combine()} loading={busy} disabled={!!blocked || pending}>
             Combine into one line
           </Button>
           {blocked && (
@@ -146,14 +145,17 @@ function CombineLines({ lines }: { lines: EntryView[] }) {
               {blocked}
             </Text>
           )}
-        </Group>
-        {error && (
-          <Text size="sm" c="red" role="alert">
-            {error}
-          </Text>
-        )}
-      </Stack>
-    </Alert>
+        </>
+      }
+    >
+      Hours for one job and day go on one line now; these were made before that. Combining adds them up and joins
+      their notes. It can't be undone.
+      {error && (
+        <Text size="sm" c="red" role="alert" mt="xs">
+          {error}
+        </Text>
+      )}
+    </NeedsYouCallout>
   );
 }
 
@@ -267,7 +269,7 @@ function EntryRow({
               {formatDurationHuman(seconds)}
             </Text>
             {!locked && (
-              <Button size="compact-xs" variant="subtle" color="red" onClick={() => void remove()} disabled={pending}>
+              <Button size="compact-xs" variant="subtle" color="gray" onClick={() => void remove()} disabled={pending}>
                 Delete
               </Button>
             )}

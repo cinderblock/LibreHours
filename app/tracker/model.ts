@@ -160,6 +160,8 @@ export interface DayModel {
   jobs: JobView[];
   /** Bookable jobs the person booked most recently, newest first. */
   recentJobIds: string[];
+  /** Submitted time goes on to an accounting system (one is connected). */
+  sendsToAccounting?: boolean;
   /** `needsYou`: something on the day waits on the person (see `pendingNotesNeedYou`). */
   week: { date: string; seconds: number; needsYou?: true }[];
 }

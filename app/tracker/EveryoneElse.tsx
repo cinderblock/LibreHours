@@ -130,7 +130,9 @@ function Panel({ date, today, timezone }: { date: string; today: string; timezon
   const summary = !answer
     ? null
     : busy.length === 0
-      ? "Nobody else has time yet"
+      ? isToday
+        ? "Nobody else has time yet"
+        : "Nobody else has time on this day"
       : `${busy.length} with time${isToday && working > 0 ? `, ${working} on the clock` : ""}`;
 
   return (

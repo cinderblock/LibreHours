@@ -2,11 +2,11 @@
  * A human label for a device, from its User-Agent — "iPhone · Safari".
  *
  * Only used to suggest a default passkey nickname and to label sessions, so
- * it deliberately stays coarse. Anything it can't place becomes "This device"
+ * it deliberately stays coarse. Anything it can't place becomes "Unknown device"
  * rather than a confident guess.
  */
 export function describeUserAgent(ua: string | null | undefined): string {
-  if (!ua) return "This device";
+  if (!ua) return "Unknown device";
 
   const device = /iPhone/.test(ua)
     ? "iPhone"
@@ -41,5 +41,5 @@ export function describeUserAgent(ua: string | null | undefined): string {
             : null;
 
   if (device && browser) return `${device} · ${browser}`;
-  return device ?? browser ?? "This device";
+  return device ?? browser ?? "Unknown device";
 }

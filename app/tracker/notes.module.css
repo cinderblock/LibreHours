@@ -16,6 +16,12 @@
   position: relative;
 }
 
+/* A note's status at the end of its text: kept whole, and sat on the line. */
+.status {
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
 .pencil {
   flex: 0 0 auto;
   /* Sits at the row's end whatever the note's length, level with its first line. */
@@ -37,6 +43,12 @@
 }
 
 @media (hover: none) {
+  /* Drawn all the time here, so it has to be seen: stronger than "dimmed". */
+  .pencil {
+    color: var(--mantine-color-text);
+    opacity: 0.55;
+  }
+
   /* No pointer to aim with: the row's whole width, and a little more of the
    * gap above and below it, opens the note. The negative margin keeps the
    * rows sitting where they did — this buys reach, not space. */

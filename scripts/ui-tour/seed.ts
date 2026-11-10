@@ -14,7 +14,7 @@ import { createSession } from "../../src/sessions.ts";
 import { addDays, today } from "../../src/time.ts";
 import { createUser, setNotesHoldNextDay, setTrackingMode } from "../../src/users.ts";
 import { uuidv7 } from "../../src/uuid.ts";
-import { initDb } from "../../src/db.server.ts";
+import { db, initDb } from "../../src/db.server.ts";
 import { config } from "../../src/config.server.ts";
 
 initDb(undefined, () => {});
@@ -183,8 +183,35 @@ setNotesHoldNextDay({ userId: sam, hold: false, actorUserId: sam });
 run(sam, "note.create", { noteId: uuidv7(), at: now - 2 * 3600_000, kind: "start", jobId: harbor });
 run(sam, "note.create", { noteId: uuidv7(), at: now - 1.5 * 3600_000, text: "Regression pass on booking flow", jobId: harbor });
 
+// Everyone signs in with a passkey in real life: a stand-in row each (it never
+// has to verify anything — the tour's sessions are made directly), so pages
+// listing passkeys look as they would rather than all saying "none".
+const passkey = (userId: number, nickname: string) =>
+  Number(
+    db()
+      .query<{ id: number }, [number, string, Uint8Array, string, number, number]>(
+        `INSERT INTO credentials (user_id, credential_id, public_key, nickname, backed_up, created_at, last_used_at)
+         VALUES (?, ?, ?, ?, 1, ?, ?) RETURNING id`,
+      )
+      .get(userId, uuidv7(), new Uint8Array(1), nickname, now - 30 * 86_400_000, now - 3600_000)!.id,
+  );
+const keys = {
+  [admin]: passkey(admin, "Windows Hello"),
+  [lee]: passkey(lee, "iPhone"),
+  [sam]: passkey(sam, "Pixel"),
+};
+
 const cookie = async (userId: number) =>
-  (await sessionCookie.serialize(createSession({ userId, credentialId: null, userAgent: "ui-tour" }).token)).split(";")[0]!;
+  (
+    await sessionCookie.serialize(
+      createSession({
+        userId,
+        credentialId: keys[userId] ?? null,
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+      }).token,
+    )
+  ).split(";")[0]!;
 
 console.log(
   JSON.stringify({
