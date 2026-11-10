@@ -78,7 +78,7 @@ test("the first admin sets up with a one-time link and a passkey", async ({ brow
   await expect(page).toHaveTitle("Today · E2E Time");
   // Admins get the Jobs page, where the backend status now lives.
   await page.getByRole("link", { name: "Jobs" }).click();
-  await expect(page.getByText("Accounting backend", { exact: true })).toBeVisible();
+  await expect(page.getByText("Accounting system", { exact: true })).toBeVisible();
 });
 
 test("the admin can sign out and back in with the passkey", async () => {

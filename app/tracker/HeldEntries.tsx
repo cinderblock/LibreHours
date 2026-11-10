@@ -1,13 +1,12 @@
-import { Anchor, Button, Card, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Button, Card, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
-import { Link } from "react-router";
 
 import { isEditable } from "../../src/entry-status.ts";
 import { jobLabel } from "../../src/job-names.ts";
-import { formatClock, formatDurationHuman, formatWorkDate } from "../../src/time.ts";
+import { formatClock, formatDurationHuman } from "../../src/time.ts";
 import appear from "../components/appear.module.css";
-import { NeedsYouCallout, needsYou, toProblem } from "../components/needs-you.tsx";
+import { needsYou } from "../components/needs-you.tsx";
 import { ClampedText } from "../components/clamped-text.tsx";
 import { MOTION } from "../motion.ts";
 import { useTracker } from "./context.tsx";
@@ -29,32 +28,6 @@ import type { EntryView } from "./model.ts";
 /** Held entries on this day: signed off, and waiting on an answer. */
 function heldOn(entries: EntryView[]): EntryView[] {
   return entries.filter((e) => e.heldBy && e.heldBy.length > 0 && !isEditable(e.status));
-}
-
-/** Other days waiting, linked. Sits under the day header so it's seen whichever day is open. */
-export function HeldDaysNotice() {
-  const { model, hrefFor } = useTracker();
-  const days = model.heldDays ?? [];
-  if (days.length === 0) return null;
-  return (
-    <NeedsYouCallout
-      className={appear.appear}
-      title={`QuickBooks already has time on ${days.length === 1 ? "a day" : `${days.length} days`} you submitted`}
-    >
-      <Text size="sm">
-        {days.slice(0, 5).map((date, i) => (
-          <span key={date}>
-            {i > 0 && ", "}
-            <Anchor component={Link} to={toProblem(hrefFor(date))} size="sm">
-              {formatWorkDate(date)}
-            </Anchor>
-          </span>
-        ))}
-        {days.length > 5 && ` and ${days.length - 5} more`}. Open a day to compare the two and choose what to do; that time
-        isn't sent until you do.
-      </Text>
-    </NeedsYouCallout>
-  );
 }
 
 /** The comparison and the choices, for each held entry on the day shown. */

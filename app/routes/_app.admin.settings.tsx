@@ -52,8 +52,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       return {
         ok: true,
         message: on
-          ? "Submitted time now waits for an admin to approve it before it goes to accounting."
-          : "Submitted time now goes straight to accounting.",
+          ? "Submitted time now waits for an admin to approve it before it's ready for accounting."
+          : "Submitted time is now ready for accounting as soon as it's submitted.",
       };
     },
     "week-start": (form) => {
@@ -198,7 +198,7 @@ function ApprovalsCard({ requireApproval }: { requireApproval: boolean }) {
           <Text size="xs" c="dimmed">
             {requireApproval
               ? "Time waits on the Timesheets page after it's submitted, and reaches accounting once an admin approves it."
-              : "Time goes to accounting as soon as the person who worked it submits it. Admins can still reopen a week to correct it."}
+              : "Time is ready for accounting as soon as the person who worked it submits it. Admins can still reopen a week to correct it."}
           </Text>
         </Stack>
       </Card>

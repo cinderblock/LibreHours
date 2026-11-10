@@ -16,7 +16,6 @@ import {
 import { TimeInput } from "@mantine/dates";
 import { useMediaQuery } from "@mantine/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useFetcher } from "react-router";
 
 import { jobLabel, jobPath } from "../../src/job-names.ts";
 import { NOTE_MAX_LENGTH } from "../../src/limits.ts";
@@ -41,7 +40,7 @@ import { latestTimeOn, noteTimeOn } from "./note-time.ts";
 import { SEND_AFTER_MS, useSendWhenLeft } from "./send-when-left.ts";
 import { useTrackerDraft } from "./tracker-draft.ts";
 import appear from "../components/appear.module.css";
-import { NEEDS_YOU, NEEDS_YOU_TEXT, NeedsYouCallout, needsYou, toProblem } from "../components/needs-you.tsx";
+import { NEEDS_YOU, NEEDS_YOU_TEXT, dialogActions, needsYou } from "../components/needs-you.tsx";
 import classes from "./notes.module.css";
 
 /**
@@ -63,7 +62,7 @@ import classes from "./notes.module.css";
  * leftover notes can still be left out, since that changes no time.
  */
 export function NotesPanel() {
-  const { model, hrefFor, actingFor } = useTracker();
+  const { model } = useTracker();
   const isToday = model.workDate === model.today;
   const notesMode = model.mode === "notes";
   // Today, or a day gone by being written up; never a day still to come.
@@ -75,7 +74,6 @@ export function NotesPanel() {
   // A submitted day is done: new notes or hours wait until it's taken back.
   const submitted = model.entries.length > 0 && model.entries.every((e) => SIGNED_OFF_STATUSES.has(e.status));
   const canAdd = writable && !heldBy && !submitted;
-  const thisDay = isToday ? "today" : formatWorkDate(model.workDate);
   const sections = useMemo(() => groupByJob(model.notes), [model.notes]);
   // Notes not hours on a day gone by, or a submitted one: marked where they are.
   const notesNeedYou = pendingNotesNeedYou(model);
@@ -88,37 +86,11 @@ export function NotesPanel() {
   return (
     <Stack gap="sm">
       <Title order={3}>Notes</Title>
+      {/* Earlier days, and the hold, are said once, at the top (EarlierDays.tsx). */}
       {heldBy && (
-        <NeedsYouCallout
-          title={`${formatWorkDate(heldBy.date)} isn't finished`}
-          actions={
-            <>
-              <Button component={Link} to={toProblem(hrefFor(heldBy.date))} size="sm">
-                Go to {formatWorkDate(heldBy.date)}
-              </Button>
-              {/* The setting is the person's own; an admin acting for them can't change it here. */}
-              {!actingFor && <StartAnyway />}
-            </>
-          }
-        >
-          {heldBy.count === 1 ? "A note there isn't" : `${heldBy.count} notes there aren't`} in the hours yet. Sort{" "}
-          {heldBy.count === 1 ? "it" : "them"} out there before {isToday ? "today's notes" : `notes on ${thisDay}`} start.
-        </NeedsYouCallout>
-      )}
-      {/* Not holding anything back doesn't make it less unfinished: still the
-          warning, just without the wall. */}
-      {unfinished && !heldBy && (
-        <NeedsYouCallout
-          title={`${formatWorkDate(unfinished.date)} isn't finished`}
-          actions={
-            <Button component={Link} to={toProblem(hrefFor(unfinished.date))} size="sm">
-              Go to {formatWorkDate(unfinished.date)}
-            </Button>
-          }
-        >
-          {unfinished.count === 1 ? "A note there isn't" : `${unfinished.count} notes there aren't`} in the hours yet.{" "}
-          {isToday ? "Today's notes" : "This day's notes"} don't have to wait for it.
-        </NeedsYouCallout>
+        <Text c="dimmed" size="sm">
+          {isToday ? "Today's notes wait" : "This day's notes wait"} for {formatWorkDate(heldBy.date)} (see above).
+        </Text>
       )}
       {/* Said by the marked card instead, when a note here is what's left. */}
       {submitted && writable && !sections.some((s) => s.pending.length > 0) && (
@@ -150,36 +122,6 @@ export function NotesPanel() {
               onFocused={clearFocus}
             />
           ))}
-    </Stack>
-  );
-}
-
-/**
- * Turn the hold off from where it bites: today starts now, and from here on an
- * unfinished day is a reminder rather than a wall. The Account page has the
- * same switch, to turn it back on.
- */
-function StartAnyway() {
-  const fetcher = useFetcher<{ ok: boolean; error?: string }>();
-  const busy = fetcher.state !== "idle";
-  return (
-    <Stack gap={2} align="flex-start">
-      <Button
-        size="sm"
-        variant="default"
-        loading={busy}
-        onClick={() => fetcher.submit({ intent: "notes-hold", hold: "0" }, { method: "post", action: "/account" })}
-      >
-        Let new days start anyway
-      </Button>
-      <Text size="xs" c="dimmed">
-        From now on an unfinished day only reminds you. Turn it back on under Your account.
-      </Text>
-      {fetcher.data && !fetcher.data.ok && (
-        <Text size="xs" c="red" role="alert">
-          {fetcher.data.error ?? "That didn't save. Try again when you're online."}
-        </Text>
-      )}
     </Stack>
   );
 }
@@ -397,6 +339,7 @@ function JobSection({
     if (result.ok) undoToast(section.pending.length === 1 ? "Note left out." : "Notes left out.");
   }
 
+  const onDay = model.workDate === model.today ? "today" : `on ${formatWorkDate(model.workDate)}`;
   // A loose note whose words were typed into the job's hours by hand (how
   // the first one of these came about): the hours already say it.
   const line = section.jobId ? model.entries.find((e) => e.jobId === section.jobId) : undefined;
@@ -442,18 +385,21 @@ function JobSection({
           <Text size="sm">
             <Text span inherit fw={600} c={NEEDS_YOU_TEXT}>
               {section.pending.filter((n) => n.kind === "note").length === 1
-                ? "A note here isn't in the hours."
+                ? `A note ${onDay} isn't in the hours.`
                 : section.pending.some((n) => n.kind === "note")
-                  ? `${section.pending.filter((n) => n.kind === "note").length} notes here aren't in the hours.`
+                  ? `${section.pending.filter((n) => n.kind === "note").length} notes ${onDay} aren't in the hours.`
                   : "This job's time isn't in the hours."}
             </Text>{" "}
-            {wordsAlreadyThere &&
-              `Its words are already in ${title}'s hours, typed there by hand, so leaving it out only tidies up. `}
-            {!section.jobId
+            {wordsAlreadyThere
+              ? `Its words are already in ${title}'s hours, so leave it out to finish the day.`
+              : null}
+            {!wordsAlreadyThere && !section.jobId
               ? "Give it a job, then turn it into hours or leave it out."
-              : canTurn
+              : !wordsAlreadyThere && canTurn
                 ? "Turn it into hours, or leave it out if it was billed some other way."
-                : reopenable
+                : wordsAlreadyThere
+                  ? ""
+                  : reopenable
                   ? "Take the day back to add it to the hours, or leave it out if it was billed some other way."
                   : "Leave it out if it was billed some other way, or ask an admin to reopen the day."}
             {heldHere && " The next day opens once it's done."}
@@ -484,13 +430,23 @@ function JobSection({
                 {written > 0 ? `Turn ${written} note${written === 1 ? "" : "s"} into hours` : "Turn into hours"}
               </Button>
             )}
+            {problem && wordsAlreadyThere && (
+              <Button size="sm" onClick={() => void leaveOut()} disabled={busy}>
+                Leave it out
+              </Button>
+            )}
             {problem && !canTurn && reopenable && (
-              <Button size="sm" onClick={() => void takeBack()} disabled={busy}>
+              <Button
+                size="sm"
+                variant={wordsAlreadyThere ? "default" : "filled"}
+                onClick={() => void takeBack()}
+                disabled={busy}
+              >
                 Take the day back
               </Button>
             )}
             {/* Time billed some other way, or that wasn't work: settled without hours. */}
-            {section.pending.length > 0 && (
+            {section.pending.length > 0 && !(problem && wordsAlreadyThere) && (
               <Button size="sm" variant="subtle" color="gray" onClick={() => void leaveOut()} disabled={busy}>
                 Leave out
               </Button>
@@ -808,7 +764,11 @@ function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting
   // a word: on a narrow screen it drops to the next line rather than
   // squeezing the note into a column one word wide.
   const status = rolled
-    ? { color: "gray", label: note.settled === "kept_in_accounting" ? "kept in accounting" : note.settled === "left_out" ? "left out" : "in the hours" }
+    ? note.settled === "kept_in_accounting"
+      ? { color: "gray", label: "kept in accounting" }
+      : note.settled === "left_out"
+        ? { color: "gray", label: "left out" }
+        : null
     : problem && note.kind === "note"
       ? { color: NEEDS_YOU, label: "not in the hours" }
       : null;
@@ -831,6 +791,7 @@ function NoteRow({ note, problem }: { note: NoteView; /** Not hours, and waiting
   return (
     <Group
       {...needsYou(problem, "row", `${classes.row} ${appear.appear}`)}
+      data-in-hours={rolled && !note.settled ? "" : undefined}
       justify="space-between"
       wrap="nowrap"
       align="start"
@@ -1089,7 +1050,7 @@ function HoursDialog({
         </div>
         <Textarea
           label="Note"
-          description="Goes with the hours, to accounting."
+          description={model.sendsToAccounting ? "Goes with the hours, to accounting." : "Goes with the hours."}
           value={note}
           onChange={(e) => {
             const v = e.currentTarget.value;
@@ -1117,7 +1078,7 @@ function HoursDialog({
           </Alert>
         )}
         {/* On a phone the main action goes on top, full width, where a thumb is. */}
-        <Group justify="flex-end" gap="sm" style={narrow ? { flexDirection: "column-reverse", alignItems: "stretch" } : undefined}>
+        <Group justify="flex-end" gap="sm" className={dialogActions}>
           <Button variant="default" onClick={close}>
             Cancel
           </Button>

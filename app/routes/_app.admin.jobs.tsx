@@ -1,4 +1,5 @@
 import { Anchor, Badge, Box, Button, Card, Group, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import { zoneName } from "../../src/time.ts";
 import { NEEDS_YOU } from "../components/needs-you.tsx";
 import { useEffect, useRef, useState } from "react";
 import { Link, useFetcher } from "react-router";
@@ -151,9 +152,11 @@ export default function Jobs({ loaderData }: Route.ComponentProps) {
       <Card withBorder>
         <Stack gap="xs">
           <Group justify="space-between">
-            <Text fw={500}>Accounting backend</Text>
+            <Text fw={500}>Accounting system</Text>
             {/* As on the Accounting page: grey when there's none, green only when connected. */}
-            <Badge color={backend.kind === "none" ? "gray" : backend.ok ? "green" : NEEDS_YOU}>{backend.kind}</Badge>
+            <Badge variant="light" color={backend.kind === "none" ? "gray" : backend.ok ? "green" : NEEDS_YOU}>
+              {backend.kind === "none" ? "none" : backend.kind}
+            </Badge>
           </Group>
           <Text size="sm">
             Time is booked to jobs, and every job belongs to a customer. A customer groups its jobs and can't take time
@@ -173,7 +176,7 @@ export default function Jobs({ loaderData }: Route.ComponentProps) {
             {backend.detail}
           </Text>
           <Text size="sm" c="dimmed">
-            Work days are counted in {timezone}.
+            Work days are counted in {zoneName(timezone)}.
           </Text>
         </Stack>
       </Card>
@@ -393,7 +396,7 @@ function JobRow({
                   : "Set here: hours don't go on this job."}
             </Text>
             {job.takesTime != null && (
-              <Button size="compact-xs" variant="subtle" disabled={busy} onClick={() => submit("takes-time", "default")}>
+              <Button size="xs" variant="subtle" disabled={busy} onClick={() => submit("takes-time", "default")}>
                 Use the default
               </Button>
             )}
@@ -479,7 +482,7 @@ function NameLine({ job, label, fetcher }: { job: JobItem; label: string; fetche
         )}
       </Group>
       {!job.remote && (
-        <Button size="compact-xs" variant="subtle" onClick={() => setRenaming(true)}>
+        <Button size="xs" variant="subtle" onClick={() => setRenaming(true)}>
           Rename
         </Button>
       )}

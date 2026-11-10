@@ -13,7 +13,7 @@ import {
 
 import { e2eEnv } from "../playwright.config.ts";
 import type { OpPayload, OpType } from "../src/ops-schema.ts";
-import { addDays, today } from "../src/time.ts";
+import { addDays, formatWorkDate, today } from "../src/time.ts";
 import { uuidv7 } from "../src/uuid.ts";
 
 /**
@@ -344,7 +344,7 @@ test("add time by hand, as a plain duration", async () => {
   await expect(dialog).toBeHidden();
 
   const row = entryRows().filter({ hasText: "Paperwork" });
-  await expect(row.getByText("Duration only")).toBeVisible();
+  await expect(row.getByText("No start or end time")).toBeVisible();
   await expect(row.getByText("1h 30m")).toBeVisible();
 });
 
@@ -377,7 +377,7 @@ test("edit an entry's times; an end before the start runs past midnight", async 
 
 test("a timer's entry can become a plain duration, and a duration can get times", async () => {
   const row = () => entryRows().filter({ hasText: "Paperwork" });
-  await expect(row().getByText("Duration only")).toBeVisible();
+  await expect(row().getByText("No start or end time")).toBeVisible();
 
   // A duration takes on times. The toggle is the same one "Add time" offers,
   // and it says what saving will do before it does it.
@@ -389,7 +389,7 @@ test("a timer's entry can become a plain duration, and a duration can get times"
   await dialog.getByRole("textbox", { name: "End", exact: true }).fill("10:00");
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog).toBeHidden();
-  await expect(row().getByText("Duration only")).toHaveCount(0);
+  await expect(row().getByText("No start or end time")).toHaveCount(0);
   await expect(row().getByText("2h")).toBeVisible();
 
   // And back: the times go, and the typed duration is what's left.
@@ -402,7 +402,7 @@ test("a timer's entry can become a plain duration, and a duration can get times"
   await dialog.getByLabel("Time worked").fill("45m");
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog).toBeHidden();
-  await expect(row().getByText("Duration only")).toBeVisible();
+  await expect(row().getByText("No start or end time")).toBeVisible();
   await expect(row().getByText("45m")).toBeVisible();
 });
 
@@ -462,10 +462,13 @@ test("move a week at a time, forward only as far as today", async () => {
 const headerMetrics = () =>
   page.evaluate(() => {
     const strip = document.querySelector('[aria-current="date"]')!.parentElement!;
-    const record = [...document.querySelectorAll("h3")].find((h) => h.textContent === "Time")!;
+    // Where the header ends and the day begins. (Not the record's heading:
+    // a day with earlier days waiting has their list between the two, which
+    // rightly moves the record down on that day.)
+    const below = document.querySelector("[data-undo-line]")!;
     return {
       stripTop: strip.getBoundingClientRect().top + window.scrollY,
-      recordTop: record.getBoundingClientRect().top + window.scrollY,
+      recordTop: below.getBoundingClientRect().bottom + window.scrollY,
       cellHeights: [...new Set([...strip.children].map((c) => c.getBoundingClientRect().height))],
     };
   });
@@ -648,7 +651,7 @@ test("switch to notes mode: add a job for the day, jot under it, and turn each j
   await expect(row.getByText("1h 15m", { exact: true })).toBeVisible();
   await expect(row.getByText(/, plus .* without times$/)).toBeVisible();
   if (process.env.E2E_SCREENSHOTS) await page.screenshot({ path: `${process.env.E2E_SCREENSHOTS}/line-mixed.png`, fullPage: true });
-  await expect(bravo.getByText("in the hours", { exact: true })).toHaveCount(3);
+  await expect(bravo.locator("[data-in-hours]")).toHaveCount(3);
   await expect(bravo.getByRole("button", { name: /^Turn .*into hours/ })).toHaveCount(0);
 
   // A note about work already counted: attached to the line, with no time added.
@@ -705,7 +708,7 @@ test("turning notes into hours takes a note still typed in the box along, instea
   await expect(alpha.getByPlaceholder("What did you do?")).toHaveValue("");
   await expect(alpha.getByRole("button", { name: /^Turn .*into hours/ })).toHaveCount(0);
   await expect(alpha.getByText("Tidied the site")).toBeVisible();
-  await expect(alpha.getByText("in the hours", { exact: true })).toHaveCount(3);
+  await expect(alpha.locator("[data-in-hours]")).toHaveCount(3);
   await expect(entryRows().filter({ hasText: "Alpha Site" }).getByText(/Site walk; Tidied the site/)).toBeVisible();
   await page.reload();
   await expect(alpha.getByText("Tidied the site")).toHaveCount(1);
@@ -719,10 +722,11 @@ test("in notes mode, yesterday's notes have to become hours before today's can s
   await send(ctx.request, "note.create", { noteId: uuidv7(), at, text: "Left over from yesterday" });
 
   await page.reload();
-  const held = page.getByRole("alert").filter({ hasText: "isn't finished" });
-  await expect(held).toContainText("A note there isn't in the hours yet. Sort it out there before today's notes start.");
+  const held = page.getByRole("alert").filter({ hasText: /n't finished/ });
+  await expect(held).toContainText(`${formatWorkDate(yesterday)}: a note isn't in the hours`);
+  await expect(held).toContainText(`Today's notes wait until ${formatWorkDate(yesterday)}'s note is in the hours or left out.`);
   await expect(page.getByPlaceholder("Add a job for today — type to search")).toHaveCount(0);
-  await held.getByRole("link", { name: /^Go to / }).click();
+  await held.getByRole("link", { name: `Go to ${formatWorkDate(yesterday)}` }).click();
   // The link lands on what's wrong there: marked, scrolled to and focused.
   await expect(page).toHaveURL(new RegExp(`/day/${yesterday}#needs-you$`));
   await expect(page.getByRole("button", { name: "Next day" })).toBeDisabled();
@@ -766,19 +770,20 @@ test("someone who'd rather finish old notes later can turn the hold off where it
   await send(ctx.request, "note.create", { noteId: leftover, at, text: "Still to sort out" });
 
   await page.goto("/");
-  const held = page.getByRole("alert").filter({ hasText: "isn't finished" });
+  const held = page.getByRole("alert").filter({ hasText: /n't finished/ });
   await expect(held).toBeVisible();
   const shots = process.env.E2E_SCREENSHOTS;
   if (shots) await page.screenshot({ path: `${shots}/notes-held.png`, fullPage: true });
-  await held.getByRole("button", { name: "Let new days start anyway" }).click();
+  await held.getByRole("button", { name: "Stop holding new days" }).click();
 
   // Today takes jobs; the unfinished day is still called out, as a warning,
   // just not a wall.
-  await expect(held.getByRole("button", { name: "Let new days start anyway" })).toHaveCount(0);
+  await expect(held.getByRole("button", { name: "Stop holding new days" })).toHaveCount(0);
   await expect(page.getByPlaceholder("Add a job for today — type to search")).toBeVisible();
-  await expect(held).toContainText("A note there isn't in the hours yet. Today's notes don't have to wait for it.");
+  await expect(held).toContainText(`${formatWorkDate(yesterday)}: a note isn't in the hours`);
+  await expect(held).not.toContainText("Today's notes wait");
   if (shots) await page.screenshot({ path: `${shots}/notes-reminder.png`, fullPage: true });
-  await held.getByRole("link", { name: /^Go to / }).click();
+  await held.getByRole("link", { name: `Go to ${formatWorkDate(yesterday)}` }).click();
   await expect(page).toHaveURL(new RegExp(`/day/${yesterday}#needs-you$`));
   await expect(page.locator("[data-needs-you]").first()).toBeFocused();
   // Moving on from it isn't held either.
@@ -792,7 +797,7 @@ test("someone who'd rather finish old notes later can turn the hold off where it
   await hold.check({ force: true });
   await expect(page.getByText("A day's notes will need to be hours before the next day starts.")).toBeVisible();
   await page.goto("/");
-  await expect(page.getByRole("alert").filter({ hasText: "isn't finished" })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: /n't finished/ })).toBeVisible();
 
   // Leave the day as it was for what follows.
   await send(ctx.request, "note.delete", { noteId: leftover, at: Date.now() });
@@ -888,7 +893,7 @@ test("submitting with notes not yet hours asks first; a submitted day's leftover
   await expect(bravo).toHaveAttribute("data-needs-you", "");
   await expect(bravo).toContainText("Take the day back to add it to the hours, or leave it out if it was billed some other way.");
   await expect(bravo.getByRole("button", { name: "Take the day back" })).toBeVisible();
-  await expect(page.getByText(/isn't in the hours \(see Notes\)\. Take the day back to add it, then submit it again\./)).toBeVisible();
+  await expect(page.getByText(/isn't in the hours\. What to do is under Notes\./)).toBeVisible();
   await expect(page.getByPlaceholder("Add a job you were on — type to search")).toHaveCount(0);
   await expect(bravo.getByPlaceholder("What did you do?")).toHaveCount(0);
   await expect(bravo.getByRole("button", { name: /into hours$/ })).toHaveCount(0);

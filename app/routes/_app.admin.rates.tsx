@@ -175,7 +175,7 @@ function RatesCard({ data }: { data: Data }) {
       <Text size="sm" c="dimmed">
         Rates cost time in reports. When several could apply, the most specific wins: a person on a job, then the job
         (or a job it sits under), then the person, then their category, then everyone. Each rate starts on a date, so
-        a raise leaves earlier work at the old rate — and approved time keeps the rate it was approved at.
+        a raise leaves earlier work at the old rate — and submitted time keeps the rate it was submitted at.
       </Text>
       <NewRateForm data={data} />
       {data.rates.length === 0 ? (
@@ -423,7 +423,7 @@ function CategoryRow({
             {category.peopleCount > 0
               ? `${category.peopleCount === 1 ? "The 1 person" : `The ${category.peopleCount} people`} in it will have no category, and its rates are removed. `
               : "Its rates are removed. "}
-            Approved time keeps the rates it was approved at.
+            Submitted time keeps the rates it was submitted at.
           </Text>
           <Group justify="end">
             <Button variant="default" onClick={() => setConfirming(false)}>

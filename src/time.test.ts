@@ -12,8 +12,16 @@ import {
   weekdayOf,
   workDateOf,
   zonedTimeInput,
+  zoneName,
   zonedTimeToInstant,
 } from "./time.ts";
+
+describe("zoneName", () => {
+  test("says a zone the way people do, and falls back to its id", () => {
+    expect(zoneName("America/Los_Angeles")).toBe("Pacific Time");
+    expect(zoneName("Not/AZone")).toBe("Not/AZone");
+  });
+});
 
 describe("workDateOf", () => {
   test("books late-evening work on the local day, not the UTC one", () => {

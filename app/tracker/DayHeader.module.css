@@ -60,9 +60,6 @@
  * cell's corner, and an orange edge along its bottom, so it's seen at a
  * glance and still reads with the selected or today highlight on it.
  */
-.cell[data-needs-you-day] {
-  box-shadow: inset 0 -3px 0 var(--mantine-color-orange-filled);
-}
 
 .needsYouArrow {
   position: absolute;
@@ -82,4 +79,11 @@
   height: 8px;
   border-radius: 50%;
   background: var(--mantine-color-orange-filled);
+}
+
+/* An arrow with nowhere to go: an outline at half strength, not a filled
+   block (which read as the live one). */
+.arrowOff:disabled {
+  background: transparent;
+  opacity: 0.45;
 }

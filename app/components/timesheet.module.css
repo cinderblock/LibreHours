@@ -69,17 +69,13 @@
 /* "7h 30m" on one line even in a phone's narrow cell. */
 @media (max-width: $mantine-breakpoint-md) {
   .day {
-    white-space: nowrap;
     font-size: var(--mantine-font-size-xs);
-    letter-spacing: -0.01em;
+    line-height: 1.2;
+    padding-inline: 2px;
   }
 }
 
 /* Waiting on someone (needs-you.tsx): the same dot and edge as the week strip. */
-.day[data-needs-you-day] {
-  box-shadow: inset 0 -3px 0 var(--mantine-color-orange-filled);
-}
-
 .day[data-needs-you-day]::after {
   content: "";
   position: absolute;

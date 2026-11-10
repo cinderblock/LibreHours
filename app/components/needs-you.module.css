@@ -79,3 +79,10 @@
     outline-offset: 3px;
   }
 }
+
+@media (max-width: 36em) {
+  .dialogActions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

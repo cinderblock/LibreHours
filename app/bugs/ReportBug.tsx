@@ -1,4 +1,5 @@
 import { Alert, Button, Collapse, Group, Image, List, Modal, Stack, Text, Textarea, UnstyledButton } from "@mantine/core";
+import { dialogActions } from "../components/needs-you.tsx";
 import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useRef, useState } from "react";
@@ -250,7 +251,8 @@ export function ReportBugButton({ userId }: { userId: number }) {
               {problem}
             </Alert>
           )}
-          <Group justify="flex-end">
+          {/* As every dialog: on a phone the main action on top, full width. */}
+          <Group justify="flex-end" gap="sm" className={dialogActions}>
             <Button variant="default" onClick={close}>
               Cancel
             </Button>

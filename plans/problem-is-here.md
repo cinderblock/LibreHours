@@ -158,6 +158,50 @@ Consolidated findings (both unless noted), status in brackets:
     green on Jobs, grey on Accounting; H1s dim in dark; content widths vary;
     category selects disabled with no reason; date formats vary.
 
+### Round 2 — A 7/10, B 7/10 — fixes committed; round 3 tour + e2e running
+
+New in round 2 (beyond leftovers from round 1): the loose note's words are
+visibly in the hours (realistic — that's how the real report happened), so
+the card now says so; the today banner said "turn it into hours" while the
+day itself only offers "take it back" → copy now "Sort it out there";
+orange paragraph text unreadable in light → orange for titles only, shade
+9 / 4 via `--needs-you-text`; an earlier day outside the strip's week had
+no mark → dot on «; person stripes pink/lime/grape read as statuses →
+palette blue/teal/indigo/cyan/violet/green; red Delete/Remove/Sign out →
+neutral; no-passkey warnings grey → callouts; "sends it to accounting" with
+none connected → `model.sendsToAccounting`; today as a second blue box →
+underline; phone dialog buttons → main action on top, full width.
+
+Reverted: hiding "Add time manually" on a submitted day — the app
+deliberately lets time join a submitted line (taken back and amended); the
+accounting e2e caught it.
+
+Left as is (deliberate): native `<input type=time>` shows "05:00 PM"; admin
+pages name env vars (the audience is whoever runs the server); content
+widths per page; "Duration only".
+
+### Round 3 — A 8/10, B 7/10 — fixes applied, round 4 running
+
+Biggest change: the three earlier-day cards (notes column "isn't
+finished", time column "earlier days not submitted", top "QuickBooks
+already has time") are one list under the day header,
+`app/tracker/EarlierDays.tsx`, oldest first, a reason and a "Go to" per
+day, plus the hold line and "Stop holding new days" (said to be a setting),
+plus "Submit all N". Also: the loose-note card names its day ("A note on
+Sat, Nov 7 isn't in the hours") and, when its words are already in the
+hours, makes "Leave it out" the main button; the submitted card no longer
+offers a second "Take the day back"; arrival stays at the top when the
+card fits on the first screen; week strip and timesheet keep the dot, lose
+the orange bar (read as "selected"); "in the hours" badge dropped (only
+exceptions badged; rows carry `data-in-hours`); `zoneName()` → "Pacific
+Time"; "Accounting system"; "No start or end time"; rates "submitted";
+"ready for accounting"; disabled arrows outline-only; one dialog-actions
+rule (`dialogActions`); bigger Delete/Rename; no green person colour;
+Everyone else doesn't say "nobody" twice.
+
+Reviewer brief now lists the deliberate choices (Add time on a submitted
+day, the text "Report a problem" button) so they aren't re-raised.
+
 ## Progress log
 
 - [x] 2026-11-09 — Report read, cause confirmed in the op log, plan written.

@@ -29,6 +29,14 @@ export const FAILED = "red";
  */
 export const NEEDS_YOU_TEXT = "var(--needs-you-text)";
 
+/**
+ * A dialog's buttons: in a row at the end on a wide screen; on a phone,
+ * stacked full width with the main action (last in the markup) on top.
+ * Not "needs you" as such, but one rule for every dialog lives here with the
+ * others the reviews settled.
+ */
+export const dialogActions = classes.dialogActions;
+
 /** The fragment a link to a problem carries: the page lands on what's marked. */
 export const NEEDS_YOU_HASH = "#needs-you";
 
@@ -106,10 +114,15 @@ export function useArriveAtProblem(ready: boolean) {
       const target = document.querySelector<HTMLElement>("[data-needs-you]");
       if (!target) return;
       const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      // Its top, not its middle: a card taller than half a phone screen,
-      // centred, puts its title and what it says under the sticky header.
-      // The card's scroll-margin keeps it clear of that header.
-      target.scrollIntoView({ block: "start", behavior: smooth ? "smooth" : "auto" });
+      const behavior = smooth ? "smooth" : "auto";
+      // If it's on the first screen with the page at the top, stay there: the
+      // day's name stays in view, which is half of "what's wrong, where".
+      // Otherwise its top, not its middle — a card taller than half a phone
+      // screen, centred, put its title under the sticky header. The card's
+      // scroll-margin keeps it clear of that header.
+      const bottom = target.getBoundingClientRect().bottom + window.scrollY;
+      if (bottom <= window.innerHeight) window.scrollTo({ top: 0, behavior });
+      else target.scrollIntoView({ block: "start", behavior });
       target.focus({ preventScroll: true });
       target.setAttribute("data-arrived", "");
       window.setTimeout(() => target.removeAttribute("data-arrived"), 2400);

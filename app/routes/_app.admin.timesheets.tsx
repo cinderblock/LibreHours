@@ -180,8 +180,9 @@ export default function Timesheets({ loaderData }: Route.ComponentProps) {
 
       <Text size="sm" c="dimmed">
         Tap a day to see or fix that person's time. Submitted days are shaded; a green outline means a timer is
-        running; an orange dot means time on that day still waits to be {approvalRequired ? "approved" : "submitted"}. People submit their own time — submitting fixes its rate and locks it
-        {approvalRequired ? ", and it waits here for approval" : " and sends it to accounting"}. Submit for someone
+        running; an orange dot means time on an earlier day still waits to be {approvalRequired ? "approved" : "submitted"}; the
+        dashed outline is today. People submit their own time — submitting fixes its rate and locks it
+        {approvalRequired ? ", and it waits here for approval" : ", ready for accounting"}. Submit for someone
         who hasn't got to it, and reopen a week that needs fixing.
       </Text>
     </Stack>

@@ -196,6 +196,21 @@ function partsFormatter(timeZone: string): Intl.DateTimeFormat {
 }
 
 /** Wall-clock fields of an instant in a zone. */
+/**
+ * A time zone as people say it — "Pacific Time" for America/Los_Angeles —
+ * falling back to its id where the runtime has no name for it.
+ */
+export function zoneName(timeZone: string): string {
+  try {
+    const part = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longGeneric" })
+      .formatToParts(new Date())
+      .find((p) => p.type === "timeZoneName")?.value;
+    return part && !part.startsWith("GMT") ? part : timeZone;
+  } catch {
+    return timeZone;
+  }
+}
+
 export function zonedParts(instant: number, timeZone: string) {
   const out: Record<string, number> = {};
   for (const p of partsFormatter(timeZone).formatToParts(new Date(instant))) {

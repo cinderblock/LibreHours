@@ -318,8 +318,8 @@ test("time QuickBooks already has is held until someone says which it is", async
   await shot("day-held");
   // And from any other day, a pointer back to this one.
   await page.goto(`/day/${await yesterday()}`);
-  const notice = page.getByRole("alert").filter({ hasText: "QuickBooks already has time on a day you submitted" });
-  await notice.getByRole("link").first().click();
+  const notice = page.getByRole("alert").filter({ hasText: "QuickBooks already has time for it" });
+  await notice.getByRole("link", { name: /^Go to / }).first().click();
   await expect(compare).toBeVisible();
 
   // Pointing at a choice says what it keeps and what it lets go, on the records themselves.

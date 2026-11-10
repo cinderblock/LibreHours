@@ -14,7 +14,7 @@ import classes from "./UndoLine.module.css";
 export function UndoLine() {
   const { undoable, undo, pending } = useTracker();
   return (
-    <Group className={classes.line} justify="flex-end" gap="xs" wrap="nowrap">
+    <Group className={classes.line} justify="flex-end" gap="xs" wrap="nowrap" data-undo-line>
       {undoable && (
         <Button
           key={undoable.label}

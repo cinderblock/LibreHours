@@ -15,6 +15,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { zoneName } from "../../src/time.ts";
 import { TimeInput } from "@mantine/dates";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
@@ -54,7 +55,7 @@ export function NotificationSettings({ view, isAdmin }: { view: NotificationsVie
         <Alert color="gray">
           Notifications aren't set up on this server yet, so none will be sent. Your choices below are kept for when
           they are.
-          {isAdmin && " (To set them up, the server needs VAPID keys; the README says how.)"}
+          {isAdmin && " Turning them on is a server setting; the README says how."}
         </Alert>
       )}
       {view.available && view.vapidPublicKey && <ThisDevice devices={view.devices} vapidPublicKey={view.vapidPublicKey} />}
@@ -322,7 +323,7 @@ function PrefsForm({
           </Chip.Group>
           <TimeInput
             label="End-of-day reminders at"
-            description={`Times are ${timeZone} time.`}
+            description={`Times are ${zoneName(timeZone)}.`}
             value={p.reminderAt}
             onChange={(e) => set("reminderAt", e.currentTarget.value)}
             maw={220}

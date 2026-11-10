@@ -44,7 +44,7 @@ function ArrowButton({
   );
   if (!to) {
     return (
-      <ActionIcon variant="default" size="lg" aria-label={label} disabled>
+      <ActionIcon variant="default" size="lg" aria-label={label} disabled className={classes.arrowOff}>
         {icon}
       </ActionIcon>
     );

@@ -190,7 +190,7 @@ function EntryRow({
         : `${formatClock(entry.startedAt, tz)} – ${entry.endedAt != null ? formatClock(entry.endedAt, tz) : "?"}`;
   // A line can hold timed time and time with no start and end (typed in, or
   // notes turned into hours) together.
-  const span = times == null ? "Duration only" : untimed > 0 ? `${times}, plus ${formatDurationHuman(untimed)} without times` : times;
+  const span = times == null ? "No start or end time" : untimed > 0 ? `${times}, plus ${formatDurationHuman(untimed)} without times` : times;
 
   async function remove() {
     const result = await dispatch("entry.delete", { entryId: entry.id, at: Date.now() });
@@ -269,7 +269,7 @@ function EntryRow({
               {formatDurationHuman(seconds)}
             </Text>
             {!locked && (
-              <Button size="compact-xs" variant="subtle" color="gray" onClick={() => void remove()} disabled={pending}>
+              <Button size="xs" variant="subtle" color="gray" onClick={() => void remove()} disabled={pending}>
                 Delete
               </Button>
             )}
