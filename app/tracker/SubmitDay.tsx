@@ -57,7 +57,8 @@ export function SubmitDay() {
               <>
                 <Group justify="space-between" wrap="wrap" gap="sm">
                   <Text fw={overdue ? 600 : 500} c={overdue ? NEEDS_YOU_TEXT : undefined}>
-                    {unsubmitted.length} {unsubmitted.length === 1 ? "entry" : "entries"} not submitted
+                    {unsubmitted.length} {unsubmitted.length === 1 ? "entry" : "entries"}{" "}
+                    {overdue ? "not submitted" : "to submit when you're done"}
                   </Text>
                   <Button
                     onClick={jobsWithNotes > 0 ? () => setAsking("day") : submitDay}
@@ -114,7 +115,7 @@ export function SubmitDay() {
                   {mine.length === 0
                     ? `An admin has approved this day, so it can't be changed here. Ask them to reopen it if ${who === "you" ? "you need" : `${who} needs`} to fix something.`
                     : loose > 0
-                      ? `${loose === 1 ? "A note" : `${loose} notes`} on this day ${loose === 1 ? "isn't" : "aren't"} in the hours. What to do is under Notes.`
+                      ? `${loose === 1 ? "A note" : `${loose} notes`} on this day ${loose === 1 ? "isn't" : "aren't"} in the hours. See the Notes section for what to do.`
                       : "This day is done. Take it back to change anything, then submit it again."}
                 </Text>
               </>

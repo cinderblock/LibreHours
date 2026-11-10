@@ -129,7 +129,7 @@ function BrandingCard({ data }: { data: Data }) {
               />
             </SimpleGrid>
             <ColorInput
-              label="Colour"
+              label="Color"
               value={color}
               onChange={setColor}
               format="hex"

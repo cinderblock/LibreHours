@@ -893,7 +893,7 @@ test("submitting with notes not yet hours asks first; a submitted day's leftover
   await expect(bravo).toHaveAttribute("data-needs-you", "");
   await expect(bravo).toContainText("Take the day back to add it to the hours, or leave it out if it was billed some other way.");
   await expect(bravo.getByRole("button", { name: "Take the day back" })).toBeVisible();
-  await expect(page.getByText(/isn't in the hours\. What to do is under Notes\./)).toBeVisible();
+  await expect(page.getByText(/isn't in the hours\. See the Notes section for what to do\./)).toBeVisible();
   await expect(page.getByPlaceholder("Add a job you were on — type to search")).toHaveCount(0);
   await expect(bravo.getByPlaceholder("What did you do?")).toHaveCount(0);
   await expect(bravo.getByRole("button", { name: /into hours$/ })).toHaveCount(0);

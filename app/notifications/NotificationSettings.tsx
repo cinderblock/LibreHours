@@ -55,7 +55,7 @@ export function NotificationSettings({ view, isAdmin }: { view: NotificationsVie
         <Alert color="gray">
           Notifications aren't set up on this server yet, so none will be sent. Your choices below are kept for when
           they are.
-          {isAdmin && " Turning them on is a server setting; the README says how."}
+          {isAdmin ? " Turning them on is a server setting; the README says how." : " Ask an admin if you'd like them."}
         </Alert>
       )}
       {view.available && view.vapidPublicKey && <ThisDevice devices={view.devices} vapidPublicKey={view.vapidPublicKey} />}

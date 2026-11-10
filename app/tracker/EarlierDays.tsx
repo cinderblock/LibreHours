@@ -63,8 +63,8 @@ export function EarlierDaysNeedYou() {
     >
       <Stack gap="sm">
         <Stack gap={6} component="ul" style={{ listStyle: "none", margin: 0, padding: 0 }}>
-          {days.slice(0, SHOWN).map((date, i) => (
-            <Group key={date} component="li" justify="space-between" gap="xs" wrap="wrap">
+          {days.slice(0, SHOWN).map((date) => (
+            <Stack key={date} component="li" gap={6} align="flex-start">
               <Text size="sm">
                 {days.length === 1 ? (
                   sentence(reasons.get(date)!)
@@ -77,17 +77,11 @@ export function EarlierDaysNeedYou() {
                   </>
                 )}
               </Text>
-              {/* On today the first is the thing to do next; on another day
-                  that day's own work comes first, so none is filled. */}
-              <Button
-                component={Link}
-                to={toProblem(hrefFor(date))}
-                size="sm"
-                variant={i === 0 && isToday ? "filled" : "default"}
-              >
+              {/* Every day's the same: its line, then its button under it. */}
+              <Button component={Link} to={toProblem(hrefFor(date))} size="sm" variant="default">
                 Go to {formatWorkDate(date)}
               </Button>
-            </Group>
+            </Stack>
           ))}
         </Stack>
         {days.length > SHOWN && (

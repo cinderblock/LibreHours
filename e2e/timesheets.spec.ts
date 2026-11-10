@@ -235,7 +235,7 @@ test("the employee sees submitted time locked, and takes the day back themselves
   // Their own submission is theirs to withdraw — no admin involved.
   await page.getByRole("button", { name: "Take the day back" }).click();
   await expect(framing.getByRole("button", { name: "Delete" })).toBeVisible();
-  await expect(page.getByText("1 entry not submitted")).toBeVisible();
+  await expect(page.getByText("1 entry to submit when you're done")).toBeVisible();
 });
 
 test("approvals can be switched on, and then time waits for an admin", async () => {
@@ -404,7 +404,7 @@ test("the app's name and colour are set by an admin", async () => {
   await expect(name).toHaveValue("E2E Time");
   await name.fill("Crew Hours");
   await page.getByRole("textbox", { name: "Short name" }).fill("Hours");
-  await page.getByRole("textbox", { name: "Colour" }).fill("#0ca678");
+  await page.getByRole("textbox", { name: "Color" }).fill("#0ca678");
   await page.keyboard.press("Tab"); // leaving the field closes the colour picker
   await expect(page.locator(".mantine-Badge-root", { hasText: "Crew Hours" })).toBeVisible();
   await page.getByRole("button", { name: "Save", exact: true }).click();

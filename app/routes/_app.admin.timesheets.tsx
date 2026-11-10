@@ -44,12 +44,6 @@ export function meta({ matches }: Route.MetaArgs) {
 const WEEKDAY = ["S", "M", "T", "W", "T", "F", "S"];
 
 /** "7:30" — hours and minutes, narrow enough for a phone's day cell. */
-/** Hours to a tenth, for a phone's narrow cell: "1.5h", "8h". */
-function shortHours(seconds: number): string {
-  const tenths = Math.round(seconds / 360) / 10;
-  return `${tenths}h`;
-}
-
 function weekField(form: FormData): { from: string; to: string } {
   const from = stringField(form, "weekStart");
   if (!isWorkDate(from)) throw new UserInputError("That request was incomplete.");
@@ -304,14 +298,7 @@ function PersonRow({
               {WEEKDAY[weekdayOf(d.date)]}
             </Text>
             <Text component="span" size="sm" c={d.entries ? undefined : "dimmed"} className={classes.hours}>
-              {d.entries ? (
-                <>
-                  <span className={classes.long}>{text}</span>
-                  <span className={classes.short}>{shortHours(d.seconds)}</span>
-                </>
-              ) : (
-                text
-              )}
+              {text}
             </Text>
           </>
         );

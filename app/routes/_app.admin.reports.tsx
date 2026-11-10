@@ -163,7 +163,7 @@ export default function Reports({ loaderData }: Route.ComponentProps) {
       </Card>
 
       <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
-        <Stat label="Hours" value={formatDurationHuman(sum.seconds)} detail={`${decimalHours(sum.seconds)} h`} />
+        <Stat label="Hours" value={formatDurationHuman(sum.seconds)} detail={`${decimalHours(sum.seconds)}h`} />
         <Stat
           label={signedOffLabel}
           value={formatDurationHuman(sum.signedOffSeconds)}
@@ -207,7 +207,7 @@ export default function Reports({ loaderData }: Route.ComponentProps) {
                 <Table.Td ta="right" style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                   {formatDurationHuman(g.seconds)}
                   <Text size="xs" c="dimmed">
-                    {decimalHours(g.seconds)} h
+                    {decimalHours(g.seconds)}h
                   </Text>
                   <Text size="xs" c="dimmed" hiddenFrom="sm">
                     {formatDurationHuman(g.signedOffSeconds)} {signedOffLabel.toLowerCase()}
