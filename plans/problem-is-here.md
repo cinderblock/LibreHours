@@ -49,6 +49,13 @@ Times local (PST).
   turned into hours, says it will be added, adds it as a note first and
   includes it in the rollup. Automatic and visible beats a refusal that sends
   the person back to press Add.
+- **The review loop stops at "good enough"** (user, 2026-11-10: "it's never
+  done. it's just good enough"). Five rounds at 7–8/10 is where it ends; no
+  more rounds for this task.
+- **Ship it** (user, 2026-11-10): rebase onto the LibreHours rename, push,
+  deploy through the ops pin.
+- **Mark Chris's bug reports fixed myself** once the fix is live (user,
+  2026-11-10).
 - **Two meanings, two colors**, used the same way everywhere:
   - *Needs you* (attention): something here is waiting on the person — notes
     not yet hours on a past day, held entries, a day that isn't finished.
@@ -83,7 +90,7 @@ Times local (PST).
        desktop + phone, light + dark, headless.
 6. [ ] Review rounds: independent reviewers score each screen; fix; repeat
        until every review is 10/10.
-7. [ ] Checks, commit, deploy only on the user's word.
+7. [ ] Checks, commit, deploy (approved 2026-11-10). ← current
 
 ## Findings / gotchas
 
@@ -242,16 +249,17 @@ person; sidebar divider stops at one screen on long pages.
 - [x] 2026-11-09 — Review rounds 1–5, fixes in `070828d`, `571cb5e`,
       `193fecb`, `29abb72`. Typecheck, 518 unit, 90 e2e green on `29abb72`.
       Two e2e tests are flaky on master too (ISSUES.md).
-- [ ] Decide how the review loop ends (question 1); deploy (question 2).
+- [x] 2026-11-10 — Review loop ended at "good enough"; deploy approved.
+- [x] 2026-11-10 — Rebased onto `origin/master` (LibreHours rename); the UI
+      tour no longer forces the old app name. The two flaky e2e tests went to
+      their own thread (worktree branch `flaky-e2e`).
+- [ ] Checks green after the rebase; push to `origin/master`.
+- [ ] Image built; ops pin updated; live on the server.
+- [ ] Chris's four bug reports marked fixed.
 
 ## Open questions for the user
 
-1. The 10/10 loop has plateaued at 7–8 with fresh reviewers each round.
-   Recommendation: switch to a fixed checklist (the consolidated findings
-   above) re-scored by the same reviewer, and call it done when that list
-   is clear — rather than new reviewers, who always find something new.
-2. Deploy: the branch is local only (`problem-highlight`, 6 commits on
-   `origin/master`). Ship it? (Push, CI image, ops pin.)
+None.
 
 ## Things not to do
 

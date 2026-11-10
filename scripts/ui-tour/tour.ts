@@ -21,7 +21,7 @@ import { type Browser, type BrowserContext, type Page, chromium } from "@playwri
 const out = resolve(process.argv[2] ?? "ui-tour");
 const PORT = Number(process.env.TOUR_PORT ?? 3190);
 const base = `http://localhost:${PORT}`;
-const db = join(tmpdir(), `time-tracker-tour-${process.pid}-${Date.now()}.db`);
+const db = join(tmpdir(), `librehours-tour-${process.pid}-${Date.now()}.db`);
 const env = {
   ...process.env,
   PORT: String(PORT),
@@ -29,7 +29,6 @@ const env = {
   DATABASE_PATH: db,
   SESSION_SECRET: "ui-tour-only-session-secret",
   TZ: "America/Los_Angeles",
-  APP_NAME: "Time Tracker",
   ACCOUNTING_BACKEND: "none",
   NOTIFY_EVERY_SECONDS: "0",
 };
