@@ -90,7 +90,7 @@ Times local (PST).
        desktop + phone, light + dark, headless.
 6. [ ] Review rounds: independent reviewers score each screen; fix; repeat
        until every review is 10/10.
-7. [ ] Checks, commit, deploy (approved 2026-11-10). ← current
+7. [x] Checks, commit, deploy (approved 2026-11-10; live 2026-11-10).
 
 ## Findings / gotchas
 
@@ -253,9 +253,17 @@ person; sidebar divider stops at one screen on long pages.
 - [x] 2026-11-10 — Rebased onto `origin/master` (LibreHours rename); the UI
       tour no longer forces the old app name. The two flaky e2e tests went to
       their own thread (worktree branch `flaky-e2e`).
-- [ ] Checks green after the rebase; push to `origin/master`.
-- [ ] Image built; ops pin updated; live on the server.
-- [ ] Chris's four bug reports marked fixed.
+- [x] 2026-11-10 — After the rebase: typecheck and 522 unit tests green;
+      every e2e test passed across three runs (failures only the known
+      flakes plus one auth sign-in flake under load, passed to the flaky-e2e
+      thread). Pushed to `origin/master` (3586ff0).
+- [x] 2026-11-10 2:21 PM PST (22:21Z) — Live: image `sha256:1239cde…` from
+      a413809 (master, includes this work), ops pin `d258b1ad`, Server
+      Deploys run 42913655302 green, container healthy.
+- [x] 2026-11-10 — The three reports about this problem marked fixed
+      (01a1bd37, 01a1c204, 01a1c209), through `setBugReportStatus` as user 1,
+      on the user's word. Left as new: a withdrawn question ("Never mind")
+      and an hours-over-time chart request, neither part of this task.
 
 ## Open questions for the user
 
