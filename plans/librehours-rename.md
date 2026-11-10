@@ -60,7 +60,7 @@ should be folded into LibreBooks.
    image, and decide whether to set `APP_NAME` in `compose.yml` (otherwise the
    app's name in production changes from "Time Tracker" to "LibreHours" on the
    next deploy). Renaming the stack, container, data directory and backup units
-   is optional and cosmetic, and can wait. ← current (waiting on the user)
+   is optional and cosmetic, and can wait. Done: see the progress log.
 5. **LibreBooks docs**: refer to the sibling project as LibreHours.
 6. **Local folder** `time-tracker` → `LibreHours`: only with the user's go-ahead,
    because open threads and T3 projects point at the current path.
@@ -96,16 +96,18 @@ should be folded into LibreBooks.
 - [x] Step 2: the repo is `cinderblock/LibreHours`, with a new description, and
   the local remote points there. The CI fix is `164254d`
 - [x] Step 3: `ghcr.io/cinderblock/librehours` is public; build `164254d` is green
-- [ ] Step 4: ops pin and `APP_NAME`. The exact change is shown to the user,
-  waiting on their yes (it deploys)
+- [x] Step 4: ops `c30506b4` (approved by the user on 2026-11-09). It pins
+  `librehours@sha256:db1a81f…` (`164254d`) and sets `APP_NAME: Time Tracker` and
+  `APP_SHORT_NAME: Time`. Deployed to steamboat 2026-11-09 5:41 PM PST (01:41Z on
+  11-10); production's manifest still says "Time Tracker". Renovate now follows
+  `ghcr.io/cinderblock/librehours:latest`
 - [x] Step 5: the LibreBooks README and master plan (decision 16), LibreBooks `259b4e9`
 - [ ] Step 6: local folder (waiting on the user)
 
 ## Open questions for the user
 
-1. Production name after the switch: keep "Time Tracker" (set `APP_NAME` in
-   ops), use "LibreHours", or something TWILL-specific? Recommendation: set it
-   explicitly in ops, so the product's default never changes what employees see.
+1. ~~Production name after the switch~~: answered. Kept as "Time Tracker", set
+   in ops.
 2. Rename the local folder? Recommendation: yes, once no other thread is active in it.
 3. LibreBooks ↔ LibreHours integration plan (LibreBooks pulls queued time, and a
    scoped credential): write it up as a LibreBooks plan now, or later?
