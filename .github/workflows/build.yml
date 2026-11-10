@@ -6,7 +6,8 @@ name: Build image
 # Which build actually runs is decided where the app is deployed, by pinning
 # this image's digest there. Shipping is therefore two steps:
 #
-#   1. push here → CI publishes ghcr.io/<owner>/<repo>:<sha> (ghcr.io/cinderblock/librehours)
+#   1. push here → CI publishes ghcr.io/<owner>/<repo, lowercased>:<sha>
+#      (ghcr.io/cinderblock/librehours)
 #   2. point the deployment at that digest
 #
 # This repo has no self-hosted runner and no access to any host. A public
@@ -21,7 +22,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
 
 concurrency:
   group: build-${{ github.ref }}
@@ -35,6 +35,10 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v7
+
+      # Image names must be lowercase; the repository is cinderblock/LibreHours.
+      - name: Image name
+        run: echo "IMAGE_PREFIX=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       - uses: oven-sh/setup-bun@v2
         with:

@@ -70,6 +70,10 @@ should be folded into LibreBooks.
 - The image name comes from `github.repository`. Once the repo is renamed, new
   builds land in a new package. The old package and the current pin keep
   working, but Renovate in ops stops seeing new builds until `pin.json` moves.
+- The first build after the rename failed at "Build and push", after every
+  check had passed: `invalid tag "ghcr.io/cinderblock/LibreHours:0a6d251…":
+  repository name must be lowercase`. The workflow now lowercases
+  `GITHUB_REPOSITORY` into `IMAGE_PREFIX` in a step.
 - Production relies on the default app name (no `APP_NAME` in compose). An admin
   may have set a name under Settings, which wins over the default.
 - Changing the IndexedDB name would orphan each phone's unsynced outbox.
