@@ -220,13 +220,38 @@ days list, and only on today; a lone day isn't named twice. "color";
 "submitted time stays here"; report bars' remainder visible; calendar's
 today tint lighter.
 
+### Round 5 — A 7/10, B 7/10 — agreed points fixed (`29abb72`); paused for the user
+
+Scores by round: 7/7, 7/7, 8/7, 8/7, 7/7. Fresh reviewers each round find
+new nitpicks and have started reversing each other (round 4: "not in the
+hours" contradicts the visible hours → "already covered"; round 5: "already
+covered" reads as all fine → back to "not in the hours", with the covered
+case said in the body). Only points both round-5 reviewers made were fixed.
+Left from round 5, single-reviewer or judgement calls: orange instead of
+blue buttons inside needs-you boxes (A; disagree — blue is the app's one
+"do this" colour); labels on the day arrows (B; standard icons with
+aria-labels); an "Edit" word instead of the pencil (B); "Leave these notes
+out" (B); "$0.00" with no rate; calendar's untimed chip clipped; account
+page length and mixed saving; role control differs between invite and
+person; sidebar divider stops at one screen on long pages.
+
 ## Progress log
 
 - [x] 2026-11-09 — Report read, cause confirmed in the op log, plan written.
+- [x] 2026-11-09 — Steps 1–5 done and committed (`1b75241`, `4fe999a`).
+- [x] 2026-11-09 — Review rounds 1–5, fixes in `070828d`, `571cb5e`,
+      `193fecb`, `29abb72`. Typecheck, 518 unit, 90 e2e green on `29abb72`.
+      Two e2e tests are flaky on master too (ISSUES.md).
+- [ ] Decide how the review loop ends (question 1); deploy (question 2).
 
 ## Open questions for the user
 
-- (none yet)
+1. The 10/10 loop has plateaued at 7–8 with fresh reviewers each round.
+   Recommendation: switch to a fixed checklist (the consolidated findings
+   above) re-scored by the same reviewer, and call it done when that list
+   is clear — rather than new reviewers, who always find something new.
+2. Deploy: the branch is local only (`problem-highlight`, 6 commits on
+   `origin/master`). Ship it? (Push, CI image, ops pin.)
 
 ## Things not to do
 
