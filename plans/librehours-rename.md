@@ -102,15 +102,15 @@ should be folded into LibreBooks.
   11-10); production's manifest still says "Time Tracker". Renovate now follows
   `ghcr.io/cinderblock/librehours:latest`
 - [x] Step 5: the LibreBooks README and master plan (decision 16), LibreBooks `259b4e9`
-- [ ] Step 6: local folder (waiting on the user)
+- [x] Step 6: local folder rename dropped by the user
 
 ## Open questions for the user
 
 1. ~~Production name after the switch~~: answered. Kept as "Time Tracker", set
    in ops.
-2. Rename the local folder? Recommendation: yes, once no other thread is active in it.
-3. LibreBooks ↔ LibreHours integration plan (LibreBooks pulls queued time, and a
-   scoped credential): write it up as a LibreBooks plan now, or later?
+2. ~~Rename the local folder?~~ Dropped by the user (2026-11-09): "don't worry about the rename".
+3. ~~Integration plan~~: started (2026-11-09). See LibreBooks
+   `plans/librehours-integration.md`, with both directions offered and the admin choosing.
 
 ## Things not to do
 
