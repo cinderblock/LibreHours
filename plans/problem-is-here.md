@@ -54,7 +54,7 @@ Times local (PST).
   more rounds for this task.
 - **Ship it** (user, 2026-11-10): rebase onto the LibreHours rename, push,
   deploy through the ops pin.
-- **Mark Chris's bug reports fixed myself** once the fix is live (user,
+- **Mark the person's bug reports fixed myself** once the fix is live (user,
   2026-11-10).
 - **Two meanings, two colors**, used the same way everywhere:
   - *Needs you* (attention): something here is waiting on the person — notes
