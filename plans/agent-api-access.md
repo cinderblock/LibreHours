@@ -1,0 +1,111 @@
+# Agent API access: hours over a token, not a browser
+
+## Goal
+
+Let Claude agents (first: the `time-approve` skill) read Cameron's days and add
+**draft** hours in LibreHours over a direct, authenticated HTTPS API, instead of
+driving Cameron's signed-in Chrome session.
+
+Asked for on 2026-11-11: "Why are we using chrome? We have full control over the
+LibreHours install and api… make a secure connection so you don't need to use
+chrome to update hours." Driving Chrome pops a browser on Cameron's screen, and a
+permission classifier now blocks it outright.
+
+## Environment / context
+
+- Repo: `cinderblock/LibreHours` (public; was `time-tracker`). Worktree for this
+  task: `~/.t3/worktrees/time-tracker/agent-api-access`, branch `agent-api-access`.
+- Production: https://time.twilltech.com on `steamboat`. Deployed by the ops repo
+  (`~/git/Personal Projects/ops`): `servers/steamboat/stacks/time-tracker/pin.json`
+  pins an image digest built by this repo's CI; Caddy (`sites.d/time.twilltech.com.caddy`)
+  reverse-proxies to `localhost:9020` with no extra gate. An `Authorization`
+  header passes through, so **no proxy, Cloudflare or DNS change is needed**: only
+  a pin bump.
+- Production was pinned at `884ea60` when this started, 33 commits behind master.
+  Bumping the pin ships those too.
+- The skill: `~/.claude/skills/time-approve/SKILL.md` ("Approving", steps 3–6 use Chrome).
+- The CLI goes in `~/git/playgrounds/qb-time/scripts/` (not a git repo).
+- Background: `~/git/playgrounds/qb-time/plans/daily-time-capture.md`.
+
+## Decisions already made (don't re-ask)
+
+- **Per-person API tokens**, created and revoked by the person on their Account
+  page, shown once, stored as SHA-256 only (same as session cookies; 256-bit
+  random tokens need no slow KDF). Format `lh_<43 base64url chars>`: the prefix
+  makes a leaked one easy to recognise and grep for.
+- **One scope, `drafts`**, with an explicit op allowlist in code:
+  `entry.create`, `entry.update`, `rollup.commit`. Everything else is refused
+  (`day.submit`, `day.unsubmit`, timers, notes, deletes, `duplicate.resolve`,
+  `job.create`, …). Tokens can't reach admin pages, invoices, accounting/sync,
+  users or tokens at all: they're only accepted on `/api/agent/*`.
+- **Drafts only, enforced in the domain code, not just by op type.** Adding time
+  to a job that already has submitted hours that day normally *takes the line
+  back* (`lineReadyToAdd` in `src/entries.ts`), which would be an unsubmit by
+  another name. A token op refuses instead (`forbidden`). `entry.update` from a
+  token only touches `draft` lines (not running timers, not submitted ones).
+- **Separate endpoints** under `/api/agent/`, bearer-only. Cookie routes don't
+  read the header and agent routes don't read cookies, so neither path loosens
+  the other. No Origin check on these (no ambient credential to forge).
+- **Audit**: `applied_ops.api_token_id` names the token for every op it sent,
+  and the op's `device_id` is forced to `token:<id>` (so entries it creates carry
+  it too). Token creation and revocation go to `audit_log`.
+- **Idempotency kept**: token ops go through the same `applied_ops` ledger by
+  `opId`. The allowlist is checked *before* the ledger, so a token can't read
+  back the stored result of an op type it isn't allowed.
+- Expiry chosen at creation: 30 days, 90 days, 1 year (default) or never.
+- Any signed-in person can make tokens for themselves: a token can only do a
+  subset of what they can already do on their phone.
+
+## API
+
+All take `Authorization: Bearer lh_…`. 401 `{error, code: "unauthorized"}` when
+missing, unknown, revoked, expired, or its person is deactivated.
+
+- `GET /api/agent/me` → `{ user: {id, name}, token: {id, name, scope, expiresAt}, ops: [...] }`
+- `GET /api/agent/day/:date` → `{ workDate, today, timezone, mode, entries, notes, jobs, open, aliases }`
+  — the day screen's own model (`loadDay`), trimmed to what an agent needs.
+- `POST /api/agent/ops` body `{ ops: Op[] }` → `{ results: OpResult[] }`, same as `/api/ops`.
+
+## Plan / steps
+
+1. [x] Plan doc.
+2. [ ] Migration `015_api_tokens`: `api_tokens` table, `applied_ops.api_token_id`.
+3. [ ] `src/api-tokens.ts`: create / resolve / list / revoke, with tests.
+4. [ ] `src/ops.ts`: a token-limited `Who` (allowlist, forced device id,
+       `draftsOnly` threaded into `addToLine` and `updateEntry`), with tests.
+5. [ ] Routes `/api/agent/me`, `/api/agent/day/:date`, `/api/agent/ops`.
+6. [ ] Account page: list, create (shown once, copy), revoke.
+7. [ ] README section; typecheck, unit tests, e2e for the token flow.
+8. [ ] Local end-to-end: run the built server, make a token, drive it with the CLI.
+9. [ ] CLI `qb-time/scripts/librehours.py` (`me`, `day`, `ops`), token from a
+       local file outside git.
+10. [ ] Ask Cameron before editing the `time-approve` skill; then edit it.
+11. [ ] Stage the deploy (pin bump in ops) and wait for Cameron's yes.
+12. [ ] Cameron creates the production token; it goes into the secret file.
+
+## Findings / gotchas
+
+- `lineReadyToAdd` (`src/entries.ts`) silently reopens submitted lines when time
+  is added to the same job and day. Both `entry.create` and `rollup.commit` reach
+  it through `addToLine`. This is why "drafts only" can't be an op-type filter alone.
+- `updateEntry` refuses to move an entry onto a job that already has a line, so
+  it can't merge into submitted hours.
+- `isEditable` includes `open` (running timers); token updates use `draft` only.
+
+## Progress log
+
+- 2026-11-11: surveyed the code and the deploy; plan written.
+
+## Open questions for the user
+
+1. Should admins see (and revoke) a person's tokens on the admin person page?
+   Deactivating someone already kills their tokens. Recommendation: yes, as a
+   follow-up.
+
+## Things not to do
+
+- Don't write to production while developing; test against a local server.
+- Never send `day.submit` / `day.unsubmit`; never touch invoices.
+- Don't add the 11-10 drafts from this thread; the review thread will.
+- Don't print token values in chat or logs.
+- Don't bump the ops pin or touch steamboat without Cameron's yes for that change.
