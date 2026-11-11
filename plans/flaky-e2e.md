@@ -1,5 +1,7 @@
 # Flaky e2e tests
 
+**Status: done.** All four causes fixed in the app, verified, on master.
+
 ## Goal
 
 Three Playwright e2e tests fail intermittently, on untouched `master` too.
@@ -122,16 +124,37 @@ without retries or longer timeouts:
 - [x] Fixes committed locally: `3022ff3` (day move), `96fa506` (passkey
       buttons), `63e781b` (breadcrumbs). Typecheck and unit tests pass. Not
       pushed: e2e verification pending.
-- [ ] Week-strip fix v2 verified (probe on rebuilt app, then the real test repeated)
-- [ ] Breadcrumb fix verified by repeated real `auth bugs` runs
+- [x] Week-strip fix v2: probe 0/30 bad on the fixed build (old build: 14/25,
+      10/12, 9/30)
+- [x] Real `auth tracking bugs` x5 (round 1): auth and tracking passed every
+      run. The bug report failed 3/5 at a later line,
+      `expect(context.screens.day).toHaveProperty("shown.workDate")`.
+      `useBugContext` registered the day screen's data from a passive
+      effect, which hadn't run when Report was pressed straight after the day
+      appeared. It was masked before by the earlier failures. Fixed in
+      `0914f45` (layout effect).
+- [x] Real `auth tracking bugs`, whole, with fresh servers each time:
+      15/15 runs clean (43/43 each), 2026-11-10
+- [x] Entire e2e suite, every project: 90 passed, 3 skipped (the
+      screenshot-only tests, as on master)
+- [x] Sign-in fix: auth passed all 15 runs (before: `auth.spec.ts:84`
+      and `:95` each failed once in this thread's runs)
+- [x] ISSUES.md entries removed; probes deleted; pushed to master
+- [x] Breadcrumb fix verified by the 15 whole runs
 - [x] Screenshot fix implemented (`e196670`); typecheck and unit tests pass
-- [ ] Screenshot fix verified (bugs probe, then real `auth bugs` repeated)
-- [ ] Sign-in fix verified (repeated real `auth` runs)
-- Blocker: the compute budget is saturated by other threads' 4-slot jobs.
-  Low-priority jobs here queued over an hour.
-- [ ] Commit, push to master, ISSUES.md entries removed
+- [x] Screenshot fix: probe 20/20 pictures arrived (slowest 5.9 s after
+      the click; before, 3/20 gave up). The probe stops at report 21 because
+      of the app's own reports-per-hour limit ("That's a lot of reports in an
+      hour"). That's the probe's artifact, not a flake.
+- [x] Breadcrumbs: `nav` crumbs now sit in order (arrival before the next
+      click) in the probe's trails
 
 ## Things not to do
 
 - Don't clear `data-day-move` on `Animation.finished`. See above.
 - Don't run two e2e suites on the same `E2E_PORT`.
+- Don't register anything a click handler reads (bug-report data,
+  breadcrumbs) from a passive `useEffect`. React can run it after the next
+  press. Use `useLayoutEffect`.
+- Don't use `--repeat-each` on one test of these serial specs. They build
+  on each other's state; repeat the whole suite instead.
