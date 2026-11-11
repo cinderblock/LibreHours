@@ -53,6 +53,21 @@ export function addCrumb(kind: string, text: string, data?: Record<string, unkno
   }, 500);
 }
 
+let lastPlace: string | null = null;
+
+/**
+ * Where the person is now, recorded when it changes. Called once as the
+ * recorder installs, for the page the browser loaded, and from the app on
+ * each navigation after that. The first can't wait for React: a page left
+ * before it hydrates (a link pressed early, which the browser follows on its
+ * own) would otherwise leave no trace that it was ever visited.
+ */
+export function notePlace(place: string): void {
+  if (place === lastPlace) return;
+  lastPlace = place;
+  addCrumb("nav", place);
+}
+
 /** The latest `n`, oldest first. */
 export function recentCrumbs(n = MAX): Breadcrumb[] {
   return all().slice(-n);
@@ -89,6 +104,7 @@ let installed = false;
 export function installBreadcrumbs(): void {
   if (installed || typeof window === "undefined") return;
   installed = true;
+  notePlace(`${location.pathname}${location.search}`);
 
   document.addEventListener(
     "click",

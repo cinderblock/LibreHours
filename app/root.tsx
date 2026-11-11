@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { generateColorsMap } from "@mantine/colors-generator";
 import { Notifications } from "@mantine/notifications";
-import { useEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 import {
   Links,
   Meta,
@@ -34,7 +34,7 @@ import "./global.css";
 import { branding } from "../src/branding.ts";
 import { config } from "../src/config.server.ts";
 import { authMiddleware } from "./auth.server.ts";
-import { addCrumb, installBreadcrumbs } from "./bugs/breadcrumbs.ts";
+import { installBreadcrumbs, notePlace } from "./bugs/breadcrumbs.ts";
 import { BoundaryReport } from "./bugs/BoundaryReport.tsx";
 import { installErrorCapture } from "./bugs/errors.ts";
 import { installTabRollCall } from "./bugs/tabs.ts";
@@ -153,9 +153,11 @@ export default function App({ loaderData }: Route.ComponentProps) {
 
   useEffect(() => rootCopy.write(loaderData), [loaderData]);
 
-  // Where the person goes, for bug reports' breadcrumbs.
+  // Where the person goes, for bug reports' breadcrumbs. As the page changes,
+  // not after: a passive effect can wait until the next press, which then
+  // reads in the trail as having come before the move it caused.
   const location = useLocation();
-  useEffect(() => addCrumb("nav", `${location.pathname}${location.search}`), [location.pathname, location.search]);
+  useLayoutEffect(() => notePlace(`${location.pathname}${location.search}`), [location.pathname, location.search]);
 
   const theme = useMemo(
     () =>
