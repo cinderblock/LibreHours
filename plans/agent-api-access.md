@@ -69,19 +69,23 @@ missing, unknown, revoked, expired, or its person is deactivated.
 ## Plan / steps
 
 1. [x] Plan doc.
-2. [ ] Migration `015_api_tokens`: `api_tokens` table, `applied_ops.api_token_id`.
-3. [ ] `src/api-tokens.ts`: create / resolve / list / revoke, with tests.
-4. [ ] `src/ops.ts`: a token-limited `Who` (allowlist, forced device id,
+2. [x] Migration `015_api_tokens`: `api_tokens` table, `applied_ops.api_token_id`.
+3. [x] `src/api-tokens.ts`: create / resolve / list / revoke, with tests.
+4. [x] `src/ops.ts`: a token-limited `Who` (allowlist, forced device id,
        `draftsOnly` threaded into `addToLine` and `updateEntry`), with tests.
-5. [ ] Routes `/api/agent/me`, `/api/agent/day/:date`, `/api/agent/ops`.
-6. [ ] Account page: list, create (shown once, copy), revoke.
-7. [ ] README section; typecheck, unit tests, e2e for the token flow.
-8. [ ] Local end-to-end: run the built server, make a token, drive it with the CLI.
-9. [ ] CLI `qb-time/scripts/librehours.py` (`me`, `day`, `ops`), token from a
+5. [x] Routes `/api/agent/me`, `/api/agent/day/:date`, `/api/agent/ops`.
+6. [x] Account page: list, create (shown once, copy), revoke.
+7. [x] README section; typecheck, unit tests, e2e for the token flow.
+8. [x] Local end-to-end: run the built server, make a token, drive it with the CLI.
+9. [x] CLI `qb-time/scripts/librehours.py` (`me`, `day`, `ops`), token from a
        local file outside git.
-10. [ ] Ask Cameron before editing the `time-approve` skill; then edit it.
-11. [ ] Stage the deploy (pin bump in ops) and wait for Cameron's yes.
-12. [ ] Cameron creates the production token; it goes into the secret file.
+10. [ ] **Current:** ask Cameron to push `agent-api-access` to master (builds the image, free: public repo).
+11. [ ] Stage the deploy in ops: `pin.json` image → `ghcr.io/cinderblock/librehours` (the repo
+        rename moved it), new digest and commit. Show it; apply only on Cameron's yes.
+12. [ ] Cameron makes the production token (Account → Tokens for scripts and agents) and saves it to
+        `~/.config/librehours/token`. Check with `librehours.py me`.
+13. [ ] Ask Cameron before editing the `time-approve` skill; edit it only after the deploy, so it
+        never points at an API production doesn't have yet.
 
 ## Findings / gotchas
 
@@ -91,10 +95,22 @@ missing, unknown, revoked, expired, or its person is deactivated.
 - `updateEntry` refuses to move an entry onto a job that already has a line, so
   it can't merge into submitted hours.
 - `isEditable` includes `open` (running timers); token updates use `draft` only.
+- The e2e spec is `e2e/tokens.spec.ts`, not `agent-api.spec.ts`: spec files run alphabetically and
+  `auth.spec.ts` must run first (it expects no admin yet).
+- After the rename to LibreHours, CI pushes `ghcr.io/cinderblock/librehours`; production's
+  `pin.json` still names `ghcr.io/cinderblock/time-tracker`. Both pull anonymously (checked
+  2026-11-11), so the pin bump changes the image name as well as the digest.
+- Bug-report breadcrumbs record only method, path and status, so a new token can't leak into a
+  report through them.
 
 ## Progress log
 
 - 2026-11-11: surveyed the code and the deploy; plan written.
+- 2026-11-11: feature committed (`566a457`). 538 unit tests and all 77 chromium e2e tests pass
+  (new: `src/api-tokens.test.ts`, `e2e/tokens.spec.ts`). CLI
+  `~/git/playgrounds/qb-time/scripts/librehours.py` driven against a local built server on a
+  throwaway DB: me/day/ops, replay, local and server refusals; the token never appears in the
+  server log.
 
 ## Open questions for the user
 
