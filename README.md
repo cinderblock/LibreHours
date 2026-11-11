@@ -160,6 +160,13 @@ repository. All of that is deployment configuration or an admin setting.
   (and its sub-jobs) or a person on a job — the most specific wins — each starting
   on a date, so a raise doesn't rewrite earlier work. Categories group people for
   filtering and rates. Weeks start on whichever day your payroll week does.
+- **Tokens for scripts and agents.** Anyone can make an API token on their
+  Account page, so a program they run can read their days and add or change
+  their *draft* hours without a browser. It's shown once and only its hash is
+  kept; each has a name, a lifetime, and a "last used", and is revoked with one
+  tap (or with its person's deactivation). A token can't submit or take back a
+  day, change hours already submitted, or reach any page — see "The agent API"
+  below.
 - **Settings.** Admins name the app and pick its colour (the header, the browser tab,
   passkey prompts and the home-screen icon all follow), and choose the first day of
   the week, and whether submitted time waits for an admin to approve it.
@@ -255,6 +262,9 @@ An admin changing someone else's time sends the same operations to
 `POST /api/admin/people/:id/ops`; the ledger records both whose time changed and
 who changed it.
 
+Scripts and agents send the same operations with an API token — see the next
+section.
+
 Offline, the same operations wait in an IndexedDB outbox
 ([`app/offline/`](app/offline/)). The screen shows the server's last copy of the
 day with the waiting operations applied by a client-side mirror of the server's
@@ -277,6 +287,32 @@ saved or cancelled, and on signing out. The update itself waits while someone is
 typing, or while a form elsewhere holds unsaved text
 ([`app/pwa/unsaved.ts`](app/pwa/unsaved.ts)), and says a new version is ready
 with a way to load it now.
+
+## The agent API
+
+For a program acting for one person, with a token they made on their Account
+page ([`src/api-tokens.ts`](src/api-tokens.ts)). Every call carries
+`Authorization: Bearer lh_…`; these routes read nothing else, and no other route
+reads that header. A missing, unknown, revoked or expired token, or one whose
+person is deactivated, is `401`.
+
+- `GET /api/agent/me` — the token's person, name, scope and expiry, and the
+  operations it may send. A cheap check that a token works.
+- `GET /api/agent/day/YYYY-MM-DD` — that person's day: `workDate`, `today`,
+  `timezone`, `entries` (each with its `status`), `notes`, `jobs` (open ones,
+  with `fullName` and `bookable`), `open` (a running timer) and `aliases`. The
+  same model the day screen is drawn from.
+- `POST /api/agent/ops` — `{ ops: [...] }`, answered `{ results: [...] }`
+  exactly as `/api/ops` is, through the same ledger: an `opId` sent twice is
+  applied once.
+
+The one scope, `drafts`, allows `entry.create`, `entry.update` and
+`rollup.commit`; any other operation is refused `forbidden`. They're held to
+draft hours as well: adding to a job whose hours that day are already
+submitted, which in the app takes them back first, is refused instead, and
+`entry.update` only changes drafts (not a running timer). The ledger records
+which token sent each operation (`applied_ops.api_token_id`), and the device id
+is `token:<id>`, whatever the caller sent.
 
 ## Configuration
 
@@ -405,7 +441,8 @@ the operator commands run from source.
 `src/config.server.ts` carry the `.server` suffix, so the build fails if any page
 component reaches them — even indirectly. Code the browser shares
 (`src/limits.ts`, `src/time.ts`, `src/rollup.ts`, `src/ops-schema.ts`,
-`src/uuid.ts`, `src/entry-status.ts`, `src/rate-scopes.ts`, `src/money.ts`) must
+`src/uuid.ts`, `src/entry-status.ts`, `src/rate-scopes.ts`, `src/money.ts`,
+`src/api-token-options.ts`) must
 not import them. Typecheck doesn't catch a violation; `bun run build` does. (Without that guard, a leaked
 import shows up only as a page that renders but never becomes interactive.)
 

@@ -3,13 +3,16 @@ import { notifications } from "@mantine/notifications";
 import { useEffect, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
 
+import { API_TOKEN_LIFETIMES } from "../../src/api-token-options.ts";
+import { createApiToken, revokeApiToken } from "../../src/api-tokens.ts";
 import { removeCredential, renameCredential } from "../../src/credentials.ts";
 import { revokeAllSessions, revokeSession } from "../../src/sessions.ts";
 import { NAME_MAX_LENGTH } from "../../src/limits.ts";
 import type { TrackingMode } from "../../src/tracking-mode.ts";
-import { renameUser, setNotesHoldNextDay, setTrackingMode } from "../../src/users.ts";
+import { UserInputError, renameUser, setNotesHoldNextDay, setTrackingMode } from "../../src/users.ts";
 import { handleForm, intField, stringField } from "../actions.server.ts";
 import { requireUser } from "../auth.server.ts";
+import { ApiTokens, type CreatedToken } from "../components/api-tokens.tsx";
 import { PasskeyList, SessionList } from "../components/credential-lists.tsx";
 import { useActionFeedback } from "../components/use-action-feedback.ts";
 import { NotificationSettings } from "../notifications/NotificationSettings.tsx";
@@ -17,7 +20,7 @@ import { notificationHandlers, notificationsView } from "../notifications.server
 import { PasskeyError, passkeysSupported, registerPasskey } from "../passkey-client.ts";
 import { SignOutButton } from "../offline/SyncStatusBadge.tsx";
 import { locationEnabled, setLocationEnabled } from "../tracker/location.ts";
-import { passkeyViews, sessionViews } from "../views.server.ts";
+import { apiTokenViews, passkeyViews, sessionViews } from "../views.server.ts";
 import { pageTitle } from "../meta.ts";
 import type { Route } from "./+types/_app.account";
 
@@ -31,6 +34,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     notesHold: user.notesHoldNextDay,
     passkeys: passkeyViews(user.id),
     sessions: sessionViews(user.id, session.id),
+    apiTokens: apiTokenViews(user.id),
     notifications: notificationsView(user.id),
   };
 }
@@ -42,7 +46,7 @@ export function meta({ matches }: Route.MetaArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const { user, session } = requireUser(context, request);
   const self = { userId: user.id, actorUserId: user.id };
-  return handleForm(request, {
+  return handleForm<{ created?: CreatedToken }>(request, {
     ...notificationHandlers({ userId: user.id, sessionId: session.id, userAgent: request.headers.get("user-agent") }),
     rename: (form) => {
       renameUser({ ...self, name: stringField(form, "name") });
@@ -76,6 +80,17 @@ export async function action({ request, context }: Route.ActionArgs) {
       revokeSession({ ...self, id: stringField(form, "sessionId") });
       return { ok: true, message: "Signed that device out." };
     },
+    "create-token": (form) => {
+      const lifetime = API_TOKEN_LIFETIMES.find((l) => l.key === stringField(form, "lifetime"));
+      if (!lifetime) throw new UserInputError("Pick how long the token lasts.");
+      const { token, apiToken } = createApiToken({ ...self, name: stringField(form, "name"), lifetimeMs: lifetime.ms });
+      // The only time the token leaves the server. Not logged, not stored.
+      return { ok: true, message: "Token made.", created: { token, name: apiToken.name } };
+    },
+    "revoke-token": (form) => {
+      revokeApiToken({ ...self, id: intField(form, "tokenId") });
+      return { ok: true, message: "Token revoked." };
+    },
     "revoke-sessions": () => {
       const n = revokeAllSessions({ ...self, exceptId: session.id });
       return { ok: true, message: `Signed out ${n} other device${n === 1 ? "" : "s"}.` };
@@ -84,7 +99,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Account({ loaderData }: Route.ComponentProps) {
-  const { userId, name, role, trackingMode, notesHold, passkeys, sessions, notifications } = loaderData;
+  const { userId, name, role, trackingMode, notesHold, passkeys, sessions, apiTokens, notifications } = loaderData;
 
   return (
     <Stack gap="xl" maw={640}>
@@ -114,6 +129,15 @@ export default function Account({ loaderData }: Route.ComponentProps) {
       <Stack gap="sm">
         <Title order={3}>Signed-in devices</Title>
         <SessionList sessions={sessions} action="/account" revokeLabel="Sign out all other devices" />
+      </Stack>
+
+      <Stack gap="sm" id="tokens">
+        <Title order={3}>Tokens for scripts and agents</Title>
+        <Text size="sm" c="dimmed">
+          A token lets a program you run read your days and add or change your draft hours, without signing in. It
+          can't submit a day, take one back, or change hours already submitted — that stays yours, in the app.
+        </Text>
+        <ApiTokens tokens={apiTokens} action="/account" />
       </Stack>
 
       <SignOutButton userId={userId}>

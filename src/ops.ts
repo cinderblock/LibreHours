@@ -47,6 +47,12 @@ export interface OpContext {
   deviceId: string;
   clientTime: number;
   now: number;
+  /**
+   * Only draft hours may change: nothing submitted is touched, and adding to
+   * a job whose hours that day are submitted is refused rather than taking
+   * them back. Set for API tokens (src/api-tokens.ts).
+   */
+  draftsOnly: boolean;
 }
 
 type Handler<T extends OpType> = (ctx: OpContext, p: OpPayload<T>) => unknown;
@@ -65,7 +71,8 @@ const handlers: { [T in OpType]: Handler<T> } = {
     createManualEntry({ ...c, ...p });
     return { entryId: p.entryId };
   },
-  "entry.update": (c, p) => void updateEntry({ userId: c.userId, actorUserId: c.actorUserId, now: c.now, ...p }),
+  "entry.update": (c, p) =>
+    void updateEntry({ userId: c.userId, actorUserId: c.actorUserId, now: c.now, draftsOnly: c.draftsOnly, ...p }),
   "entry.delete": (c, p) => void deleteEntry({ userId: c.userId, actorUserId: c.actorUserId, now: c.now, ...p }),
   "entry.restore": (c, p) =>
     void restoreEntry({ userId: c.userId, actorUserId: c.actorUserId, now: c.now, entryId: p.entryId }),
@@ -123,13 +130,14 @@ function record(who: Who, env: OpEnvelope, now: number, result: OpResult): void 
   db()
     .query(
       `INSERT INTO applied_ops
-         (op_id, user_id, actor_user_id, type, device_id, client_time, applied_at, payload_json, ok, result_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (op_id, user_id, actor_user_id, api_token_id, type, device_id, client_time, applied_at, payload_json, ok, result_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       env.opId,
       who.userId,
       who.actorUserId,
+      who.apiToken?.id ?? null,
       env.type,
       env.deviceId,
       env.clientTime,
@@ -143,8 +151,17 @@ function record(who: Who, env: OpEnvelope, now: number, result: OpResult): void 
 /**
  * Whose time an op changes, and who is changing it. Admins acting for someone
  * pass both; everyone else just their own id.
+ *
+ * `apiToken` is set when the op came with an API token rather than from a
+ * signed-in device: only the op types it lists are accepted, only draft hours
+ * change, and the op is recorded against the token (its device id becomes
+ * `token:<id>`, whatever the caller sent).
  */
-export type Who = { userId: number; actorUserId: number };
+export type Who = {
+  userId: number;
+  actorUserId: number;
+  apiToken?: { id: number; ops: ReadonlySet<OpType> };
+};
 
 function whoOf(who: number | Who): Who {
   return typeof who === "number" ? { userId: who, actorUserId: who } : who;
@@ -159,7 +176,16 @@ export function applyOp(as: number | Who, raw: unknown, now: number = Date.now()
     // Can't be recorded: without a valid envelope there's no trustworthy id.
     return { opId: typeof rawId === "string" ? rawId : "", ok: false, code: "invalid", error: describeZodError(envelope.error) };
   }
-  const env = envelope.data;
+  let env = envelope.data;
+
+  if (who.apiToken) {
+    // Before the ledger, so a token can't even read back the recorded result
+    // of an op it isn't allowed to send. Not recorded: the op was never tried.
+    if (!who.apiToken.ops.has(env.type)) {
+      return { opId: env.opId, ok: false, code: "forbidden", error: `This token can't send ${env.type}.` };
+    }
+    env = { ...env, deviceId: `token:${who.apiToken.id}` };
+  }
 
   const seen = db()
     .query<{ user_id: number; result_json: string }, [string]>(
@@ -180,7 +206,14 @@ export function applyOp(as: number | Who, raw: unknown, now: number = Date.now()
     return result;
   }
 
-  const ctx: OpContext = { ...who, deviceId: env.deviceId, clientTime: env.clientTime, now };
+  const ctx: OpContext = {
+    userId: who.userId,
+    actorUserId: who.actorUserId,
+    deviceId: env.deviceId,
+    clientTime: env.clientTime,
+    now,
+    draftsOnly: who.apiToken != null,
+  };
   const handler = handlers[env.type] as Handler<OpType>;
   try {
     return db().transaction((): OpResult => {

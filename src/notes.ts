@@ -323,6 +323,8 @@ export function commitRollup(args: {
   deviceId: string;
   clientTime: number;
   now: number;
+  /** Refuse to join hours that aren't a draft, rather than taking them back. */
+  draftsOnly?: boolean;
 }): string[] {
   const lines = args.lines.map((l) => ({ ...l, line: lineFor(args.userId, l.jobId, args.workDate, l.entryId) }));
   const problems = rollupProblems(lines.map((l) => ({ ...l, joinsLine: l.line != null })));
@@ -351,6 +353,7 @@ export function commitRollup(args: {
         line: line.line,
         userId: args.userId,
         actorUserId: args.actorUserId ?? args.userId,
+        draftsOnly: args.draftsOnly,
         ...(spanned ? { startedAt: line.startedAt!, endedAt: line.endedAt! } : { seconds: line.durationSeconds! }),
         note: line.note,
         now: args.now,
@@ -369,6 +372,7 @@ export function commitRollup(args: {
         ? { startedAt: line.startedAt!, endedAt: line.endedAt! }
         : { workDate: args.workDate, durationSeconds: line.durationSeconds! }),
       source: "note_rollup",
+      draftsOnly: args.draftsOnly,
       deviceId: args.deviceId,
       clientTime: args.clientTime,
       now: args.now,

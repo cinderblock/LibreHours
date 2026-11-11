@@ -44,6 +44,12 @@ export default [
   route("api/admin/people/:userId/ops", "routes/api.admin.people.$userId.ops.ts"),
   // Everyone else's time on a day, beside an admin's own.
   route("api/admin/day/:date", "routes/api.admin.day.$date.ts"),
+  // Scripts and agents, with an API token instead of a session (src/api-tokens.ts).
+  ...prefix("api/agent", [
+    route("me", "routes/api.agent.me.ts"),
+    route("day/:date", "routes/api.agent.day.$date.ts"),
+    route("ops", "routes/api.agent.ops.ts"),
+  ]),
 
   // The QuickBooks Web Connector's SOAP endpoint and the support page its
   // connection file points at. They answer 404 unless it's the configured backend.

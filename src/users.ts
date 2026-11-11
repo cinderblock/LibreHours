@@ -235,9 +235,13 @@ export function updateUserAccess(args: {
       .run(role, active ? 1 : 0, Date.now(), user.id);
 
     if (!active && user.active) {
-      // A deactivated person must not stay signed in anywhere.
+      // A deactivated person must not stay signed in anywhere, and their API
+      // tokens die with it rather than waking up again if they're reactivated.
       database
         .query("UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL")
+        .run(Date.now(), user.id);
+      database
+        .query("UPDATE api_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL")
         .run(Date.now(), user.id);
     }
 

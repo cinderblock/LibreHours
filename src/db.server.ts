@@ -736,6 +736,35 @@ const migrations: Migration[] = [
         ALTER TABLE time_entries ADD COLUMN stale_skipped TEXT;
     `,
   },
+  {
+    name: "015_api_tokens",
+    sql: `
+        -- Tokens a person makes so a script or agent can work with their time
+        -- without a browser (src/api-tokens.ts). Like sessions, only the
+        -- SHA-256 of the token is stored, so a database leak can't be replayed.
+        -- A token acts as its person, limited to its scope:
+        --   drafts   read their days; add and change draft hours. Never submit,
+        --            take back, or touch anything already submitted.
+        CREATE TABLE api_tokens (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name          TEXT NOT NULL,
+          token_hash    TEXT NOT NULL UNIQUE,
+          -- The token's last few characters, to tell tokens apart on screen.
+          hint          TEXT NOT NULL,
+          scope         TEXT NOT NULL CHECK (scope IN ('drafts')),
+          created_at    INTEGER NOT NULL,
+          -- NULL: never expires (the person chose that).
+          expires_at    INTEGER,
+          last_used_at  INTEGER,
+          revoked_at    INTEGER
+        );
+        CREATE INDEX idx_api_tokens_user ON api_tokens(user_id);
+
+        -- Which token sent an op, when one did (NULL: a signed-in device).
+        ALTER TABLE applied_ops ADD COLUMN api_token_id INTEGER REFERENCES api_tokens(id);
+    `,
+  },
 ];
 
 /**

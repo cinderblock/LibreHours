@@ -297,7 +297,12 @@ function recordAlias(aliasId: string, entryId: string, now: number): void {
  * for them — and the day then needs submitting again, as after any change.
  * Time an admin has approved isn't the person's to reopen.
  */
-function lineReadyToAdd(line: Entry, who: { userId: number; actorUserId: number }, now: number): Entry {
+function lineReadyToAdd(
+  line: Entry,
+  who: { userId: number; actorUserId: number; draftsOnly?: boolean },
+  now: number,
+): Entry {
+  if (who.draftsOnly && line.status !== "draft") throw draftsOnlyRefusal(line);
   if (isEditable(line.status)) return line;
   const ownOnly = who.userId === who.actorUserId;
   if (!REOPENABLE_STATUSES.has(line.status) || (ownOnly && line.approvedBy != null)) {
@@ -308,6 +313,21 @@ function lineReadyToAdd(line: Entry, who: { userId: number; actorUserId: number 
   }
   reopenEntries({ userId: line.userId, entryIds: [line.id], actorUserId: who.actorUserId, now, ownSubmissionsOnly: ownOnly });
   return getEntry(line.id)!;
+}
+
+/**
+ * Why a caller limited to draft hours (an API token) can't change this line.
+ * Taking hours back is the person's own step, in the app.
+ */
+function draftsOnlyRefusal(line: Entry): OpError {
+  const what =
+    line.status === "open"
+      ? "has a timer running"
+      : `has hours that are ${line.status === "sync_failed" ? "submitted" : line.status}`;
+  return new OpError(
+    "forbidden",
+    `This job ${what} on ${formatWorkDate(line.workDate)}. A token can only add to or change draft hours; anything else is for the person to do in the app.`,
+  );
 }
 
 /** Two descriptions as one; refused rather than cut when together they're too long. */
@@ -332,6 +352,8 @@ export function addToLine(args: {
   line: Entry;
   userId: number;
   actorUserId: number;
+  /** Refuse a line that isn't a draft, rather than taking it back. */
+  draftsOnly?: boolean;
   startedAt?: number;
   endedAt?: number;
   seconds?: number;
@@ -664,6 +686,8 @@ export function createManualEntry(args: {
   deviceId: string;
   clientTime: number;
   now: number;
+  /** Refuse to join hours that aren't a draft, rather than taking them back. */
+  draftsOnly?: boolean;
 }): Entry {
   const jobId = requireBookableJob(args.jobId).id;
   if (getEntry(args.entryId)) throw new OpError("conflict", "That entry already exists.");
@@ -680,6 +704,7 @@ export function createManualEntry(args: {
       line,
       userId: args.userId,
       actorUserId: args.actorUserId ?? args.userId,
+      draftsOnly: args.draftsOnly,
       ...(spanned ? { startedAt: args.startedAt!, endedAt: args.endedAt! } : { seconds }),
       note: args.note,
       now: args.now,
@@ -754,8 +779,11 @@ export function updateEntry(args: {
   untimedSeconds?: number;
   convertTo?: "duration" | "times";
   now: number;
+  /** Only a draft may change: not a running timer, not submitted hours. */
+  draftsOnly?: boolean;
 }): Entry {
   const entry = ownLiveEntry(args.userId, args.entryId);
+  if (args.draftsOnly && entry.status !== "draft") throw draftsOnlyRefusal(entry);
   if (!isEditable(entry.status))
     throw new OpError("conflict", lockedReason(entry.status, entry.approvedBy == null));
   const before = snapshot(entry);
