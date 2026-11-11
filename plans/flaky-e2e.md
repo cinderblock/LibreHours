@@ -113,7 +113,7 @@ without retries or longer timeouts:
 - Screenshot: draw behind the dialog. Copy the page before the dialog opens
   (it reads the live page), then decode the image behind the open dialog,
   with "Drawing the page…" and no give-up. Sending waits for the picture.
-  Done in `e196670`. The e2e test now checks the picture after typing, just
+  Done in `08ec482`. The e2e test now checks the picture after typing, just
   before Send.
 - Verification keeps `--low` on the compute budget, even though it queues
   for a long time behind other threads' jobs.
@@ -121,8 +121,8 @@ without retries or longer timeouts:
 ## Progress
 
 - [x] Reproduce week-strip flake with a probe; root cause found
-- [x] Fixes committed locally: `3022ff3` (day move), `96fa506` (passkey
-      buttons), `63e781b` (breadcrumbs). Typecheck and unit tests pass. Not
+- [x] Fixes committed locally: `6064046` (day move), `abd9b59` (passkey
+      buttons), `e01087e` (breadcrumbs). Typecheck and unit tests pass. Not
       pushed: e2e verification pending.
 - [x] Week-strip fix v2: probe 0/30 bad on the fixed build (old build: 14/25,
       10/12, 9/30)
@@ -132,7 +132,7 @@ without retries or longer timeouts:
       `useBugContext` registered the day screen's data from a passive
       effect, which hadn't run when Report was pressed straight after the day
       appeared. It was masked before by the earlier failures. Fixed in
-      `0914f45` (layout effect).
+      `c4a8c18` (layout effect).
 - [x] Real `auth tracking bugs`, whole, with fresh servers each time:
       15/15 runs clean (43/43 each), 2026-11-10
 - [x] Entire e2e suite, every project: 90 passed, 3 skipped (the
@@ -141,7 +141,7 @@ without retries or longer timeouts:
       and `:95` each failed once in this thread's runs)
 - [x] ISSUES.md entries removed; probes deleted; pushed to master
 - [x] Breadcrumb fix verified by the 15 whole runs
-- [x] Screenshot fix implemented (`e196670`); typecheck and unit tests pass
+- [x] Screenshot fix implemented (`08ec482`); typecheck and unit tests pass
 - [x] Screenshot fix: probe 20/20 pictures arrived (slowest 5.9 s after
       the click; before, 3/20 gave up). The probe stops at report 21 because
       of the app's own reports-per-hour limit ("That's a lot of reports in an
