@@ -89,6 +89,12 @@ without retries or longer timeouts:
   and load-sensitive. The app gives up at 8 s, the test waits 5 s, and the
   dialog doesn't open at all until the drawing is done.
 
+- Repeating one test: these specs are `mode: "serial"` and build on each
+  other's state, so `--repeat-each` on one test can't run it alone. The
+  probes repeat each test's own sequence many times within one test; the real
+  suites are then rerun whole, each run with fresh servers
+  (`scratchpad/loop-real.sh`).
+
 ### 3. Sign in with a passkey
 
 - `/signin` (and `/join`) rendered the passkey button enabled on the server
@@ -100,12 +106,15 @@ without retries or longer timeouts:
 - `auth.spec.ts:95` ("sign-in returns to the page that asked for it") failed
   the same way once in this thread's runs: the same pre-hydration press.
 
-## Open questions for the user
+## Decisions (user, 2026-11-10)
 
-1. Screenshot: which fix? (See the chat for the options.) My recommendation:
-   open the dialog straight after the clone, and draw the image behind it
-   with a visible "Drawing the page…" state and no give-up while the dialog
-   is open. The test then waits for that state to resolve.
+- Screenshot: draw behind the dialog. Copy the page before the dialog opens
+  (it reads the live page), then decode the image behind the open dialog,
+  with "Drawing the page…" and no give-up. Sending waits for the picture.
+  Done in `e196670`. The e2e test now checks the picture after typing, just
+  before Send.
+- Verification keeps `--low` on the compute budget, even though it queues
+  for a long time behind other threads' jobs.
 
 ## Progress
 
@@ -115,7 +124,8 @@ without retries or longer timeouts:
       pushed: e2e verification pending.
 - [ ] Week-strip fix v2 verified (probe on rebuilt app, then the real test repeated)
 - [ ] Breadcrumb fix verified by repeated real `auth bugs` runs
-- [ ] Screenshot fix: waiting on the user's choice
+- [x] Screenshot fix implemented (`e196670`); typecheck and unit tests pass
+- [ ] Screenshot fix verified (bugs probe, then real `auth bugs` repeated)
 - [ ] Sign-in fix verified (repeated real `auth` runs)
 - Blocker: the compute budget is saturated by other threads' 4-slot jobs.
   Low-priority jobs here queued over an hour.
