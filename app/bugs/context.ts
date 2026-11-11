@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import { CODE_BUILD } from "../../src/build-info.ts";
 import { getEngine } from "../offline/client.ts";
@@ -20,11 +20,18 @@ import { rollCall } from "./tabs.ts";
 
 const providers = new Map<string, () => unknown>();
 
-/** While this component is mounted, a bug report includes `get()` under `screens[name]`. */
+/**
+ * While this component is mounted, a bug report includes `get()` under
+ * `screens[name]`.
+ *
+ * Registered as the screen is put on the page, not after: a passive effect
+ * can wait until the next press, and when that press is "Report a problem"
+ * the report goes without the screen it was about.
+ */
 export function useBugContext(name: string, get: () => unknown): void {
   const latest = useRef(get);
   latest.current = get;
-  useEffect(() => {
+  useLayoutEffect(() => {
     const read = () => latest.current();
     providers.set(name, read);
     return () => {
