@@ -55,7 +55,9 @@ function JoinForm({ purpose, role, nameHint, targetName, signedInAs, targetIsSig
   const [name, setName] = useState(nameHint);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; quiet: boolean } | null>(null);
-  const [supported, setSupported] = useState(true);
+  // Null until the page's code runs, and the button held off till then: a
+  // form sent before hydration would go to the server as a plain GET.
+  const [supported, setSupported] = useState<boolean | null>(null);
   useEffect(() => setSupported(passkeysSupported()), []);
 
   const needsName = purpose !== "add_device";
@@ -102,7 +104,7 @@ function JoinForm({ purpose, role, nameHint, targetName, signedInAs, targetIsSig
         </Alert>
       )}
 
-      {!supported && (
+      {supported === false && (
         <Alert color="red" title="Passkeys aren't available">
           This browser can't create passkeys. Open this link in a current version of Safari, Chrome, Edge or
           Firefox.
@@ -123,7 +125,7 @@ function JoinForm({ purpose, role, nameHint, targetName, signedInAs, targetIsSig
               data-autofocus
             />
           )}
-          <Button type="submit" size="lg" fullWidth loading={busy} disabled={!supported || (needsName && !name.trim())}>
+          <Button type="submit" size="lg" fullWidth loading={busy} disabled={supported !== true || (needsName && !name.trim())}>
             Create passkey
           </Button>
           <Text size="sm" c="dimmed">

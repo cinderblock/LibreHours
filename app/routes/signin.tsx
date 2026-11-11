@@ -26,9 +26,10 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; quiet: boolean } | null>(null);
-  // Only known after hydration; assume support until the browser says otherwise
-  // so the server render and first client render agree.
-  const [supported, setSupported] = useState(true);
+  // Only known once the page's code runs: until then (null) the button is
+  // drawn but held off, since a press before hydration does nothing at all.
+  // The server render and the first client render agree on that.
+  const [supported, setSupported] = useState<boolean | null>(null);
   useEffect(() => setSupported(passkeysSupported()), []);
 
   async function signIn() {
@@ -59,14 +60,14 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
         </Alert>
       )}
 
-      {!supported && (
+      {supported === false && (
         <Alert color="red" title="Passkeys aren't available">
           This browser can't use passkeys. Use a current version of Safari, Chrome, Edge or Firefox.
         </Alert>
       )}
 
       <Stack gap="xs">
-        <Button size="lg" fullWidth loading={busy} disabled={!supported} onClick={signIn}>
+        <Button size="lg" fullWidth loading={busy} disabled={supported !== true} onClick={signIn}>
           Sign in with a passkey
         </Button>
         <Text size="sm" c="dimmed">
