@@ -97,12 +97,15 @@ test("Report a problem: what the person says, a screenshot, and what the page kn
 
   await page.getByRole("button", { name: "Report a problem" }).click();
   const dialog = page.getByRole("dialog", { name: "Report a problem" });
-  await expect(dialog.getByRole("img", { name: "The page when you pressed the button" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Send report" })).toBeDisabled();
   await dialog.getByRole("button", { name: "What's sent with this" }).click();
   await expect(dialog.getByText("Only admins can read reports.")).toBeVisible();
   await dialog.getByLabel("What were you trying to do?").fill("Checking the week's total");
   await dialog.getByLabel("What happened instead?").fill("It showed yesterday");
+  // The page's picture is drawn behind the dialog while the person types:
+  // seconds on a busy machine, which used to keep the dialog shut, or give
+  // up on the picture altogether.
+  await expect(dialog.getByRole("img", { name: "The page when you pressed the button" })).toBeVisible();
   if (shots) await page.screenshot({ path: `${shots}/bug-report-dialog.png` });
   await dialog.getByRole("button", { name: "Send report" }).click();
   await expect(page.getByText("Thanks — your report was sent")).toBeVisible();

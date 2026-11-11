@@ -52,26 +52,40 @@ async function toShot(kind: Shot["kind"], canvas: HTMLCanvasElement): Promise<Sh
 }
 
 /**
- * The visible part of the page, as drawn by the app. Elements marked
- * `data-bug-exclude` are left out (the report button itself, toasts).
+ * The visible part of the page, as drawn by the app, in two steps. Elements
+ * marked `data-bug-exclude` are left out (the report button itself, toasts).
+ *
+ * The first step copies the page: every element with its styles, into a
+ * picture still to be drawn. It has to finish before anything covers the
+ * page — it reads the live page as it goes, so a dialog opening part-way
+ * would be copied too — and it is given up on after `timeoutMs`, since
+ * someone is waiting on it. The second step, which this returns, draws that
+ * copy into an image. That's the slow half on a busy device (seconds, the
+ * browser decoding a page-sized image), and it needs nothing on screen to
+ * stay put, so it can run behind the dialog while the person types.
  */
-export async function drawPage(timeoutMs = 8000): Promise<Shot> {
-  const { domToCanvas } = await import("modern-screenshot");
-  const drawing = domToCanvas(document.documentElement, {
-    width: innerWidth,
-    height: innerHeight,
+export async function tracePage(timeoutMs = 8000): Promise<() => Promise<Shot>> {
+  const { domToCanvas, domToForeignObjectSvg } = await import("modern-screenshot");
+  const width = innerWidth;
+  const height = innerHeight;
+  const scale = Math.min(devicePixelRatio || 1, 2);
+  const backgroundColor = getComputedStyle(document.body).backgroundColor || "#ffffff";
+  const tracing = domToForeignObjectSvg(document.documentElement, {
+    width,
+    height,
     // The viewport, not the whole document: what the person was looking at.
     style: { transform: `translate(${-scrollX}px, ${-scrollY}px)` },
-    scale: Math.min(devicePixelRatio || 1, 2),
-    backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
+    scale,
+    backgroundColor,
     filter: (node) => !(node instanceof Element && node.hasAttribute("data-bug-exclude")),
     timeout: timeoutMs,
   });
-  const canvas = await Promise.race([
-    drawing,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Drawing the page took too long.")), timeoutMs)),
+  const copy = await Promise.race([
+    tracing,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Copying the page took too long.")), timeoutMs)),
   ]);
-  return toShot("drawn", canvas);
+  // A finished copy is drawn as it is: nothing in it is fetched or cloned again.
+  return async () => toShot("drawn", await domToCanvas(copy, { width, height, scale, backgroundColor }));
 }
 
 /** Whether this browser can capture the real screen. */

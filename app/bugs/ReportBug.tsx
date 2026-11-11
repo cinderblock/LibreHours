@@ -10,24 +10,44 @@ import { draftKey, useDraft } from "../drafts/drafts.ts";
 import { addCrumb } from "./breadcrumbs.ts";
 import { gatherContext } from "./context.ts";
 import { sendReport } from "./report.ts";
-import { type Shot, canCapture, captureScreen, drawPage } from "./screenshot.ts";
+import { type Shot, canCapture, captureScreen, tracePage } from "./screenshot.ts";
 
 /**
  * "Report a problem": one button in the app's header, always there.
  *
- * Pressing it first takes the picture and gathers what the app knows —
+ * Pressing it first copies the page and gathers what the app knows —
  * before the dialog covers anything — then asks the person two things in
- * their own words. Everything else is attached for them; the dialog says
+ * their own words, while the copy is drawn into a picture behind the dialog
+ * (the slow part, on a busy device). Sending waits for the picture. Everything else is attached for them; the dialog says
  * what, in a list they can open. What they type is kept on the device
  * until it's sent, like every other field in the app.
  */
 export function ReportBugButton({ userId }: { userId: number }) {
   const [phase, setPhase] = useState<"idle" | "preparing" | "open" | "capturing" | "sending">("idle");
-  const [shots, setShots] = useState<Shot[]>([]);
+  const [shots, setShotsState] = useState<Shot[]>([]);
+  // Read by `send` straight after awaiting the drawing, before React has
+  // rendered what it set: so the list lives here too, kept in step.
+  const shotsRef = useRef<Shot[]>([]);
+  const setShots = (next: Shot[] | ((list: Shot[]) => Shot[])) => {
+    shotsRef.current = typeof next === "function" ? next(shotsRef.current) : next;
+    setShotsState(shotsRef.current);
+  };
+  // The page's picture, still being drawn behind the dialog.
+  const [drawing, setDrawing] = useState(false);
+  const drawingRef = useRef<Promise<void> | null>(null);
+  // Which report a drawing belongs to: one that lands after its dialog has
+  // gone is let go instead of joining the next report.
+  const reportRef = useRef(0);
   const [context, setContext] = useState<Record<string, unknown> | null>(null);
   const [pressedAt, setPressedAt] = useState(0);
   const [problem, setProblem] = useState<string | null>(null);
-  const [drawFailed, setDrawFailed] = useState<string | null>(null);
+  const [drawFailed, setDrawFailedState] = useState<string | null>(null);
+  // Like the shots, read by `send` once the drawing it waited on is over.
+  const drawFailedRef = useRef<string | null>(null);
+  const setDrawFailed = (why: string | null) => {
+    drawFailedRef.current = why;
+    setDrawFailedState(why);
+  };
   const [showIncluded, setShowIncluded] = useState(false);
   const scope = `u${userId}`;
   const [description, setDescription, discardDescription] = useDraft(draftKey(scope, "bug-report:description"), "");
@@ -45,21 +65,42 @@ export function ReportBugButton({ userId }: { userId: number }) {
     setDrawFailed(null);
     addCrumb("report", "Report a problem pressed");
     const at = Date.now();
-    const [shot, gathered] = await Promise.all([
-      drawPage().catch((err: unknown) => {
+    const report = ++reportRef.current;
+    const [draw, gathered] = await Promise.all([
+      tracePage().catch((err: unknown) => {
         setDrawFailed(err instanceof Error ? err.message : String(err));
         return null;
       }),
       gatherContext(userId).catch((err: unknown) => ({ gatherFailed: err instanceof Error ? err.message : String(err) })),
     ]);
     setPressedAt(at);
-    setShots(shot ? [shot] : []);
+    setShots([]);
     setContext(gathered);
     setPhase("open");
+    if (!draw) return;
+    setDrawing(true);
+    drawingRef.current = draw().then(
+      (shot) => {
+        if (reportRef.current !== report) return URL.revokeObjectURL(shot.url);
+        // First in the list, ahead of any screen capture made meanwhile.
+        setShots((list) => [shot, ...list]);
+      },
+      (err: unknown) => {
+        if (reportRef.current === report) setDrawFailed(err instanceof Error ? err.message : String(err));
+      },
+    );
+    void drawingRef.current.finally(() => {
+      if (reportRef.current !== report) return;
+      drawingRef.current = null;
+      setDrawing(false);
+    });
   }
 
   function forget() {
-    for (const s of shots) URL.revokeObjectURL(s.url);
+    for (const s of shotsRef.current) URL.revokeObjectURL(s.url);
+    reportRef.current++;
+    drawingRef.current = null;
+    setDrawing(false);
     setShots([]);
     setContext(null);
     setShowIncluded(false);
@@ -97,13 +138,16 @@ export function ReportBugButton({ userId }: { userId: number }) {
     if (!description.trim() || !context) return;
     setPhase("sending");
     setProblem(null);
+    // The picture of the page goes with it, so wait for it if it's still
+    // being drawn.
+    await drawingRef.current;
     const result = await sendReport({
       userId,
       pressedAt,
       description,
       expected,
-      context: drawFailed ? { ...context, screenshotFailed: drawFailed } : context,
-      shots,
+      context: drawFailedRef.current ? { ...context, screenshotFailed: drawFailedRef.current } : context,
+      shots: shotsRef.current,
     });
     if (result.status === "refused" || result.status === "lost") {
       setProblem(
@@ -193,7 +237,12 @@ export function ReportBugButton({ userId }: { userId: number }) {
             <Text size="sm" fw={500}>
               Screenshots
             </Text>
-            {shots.length === 0 && (
+            {drawing && (
+              <Text size="sm" c="dimmed" role="status">
+                Drawing the page…
+              </Text>
+            )}
+            {!drawing && shots.length === 0 && (
               <Text size="sm" c="dimmed">
                 {drawFailed ? `The page couldn't be drawn (${drawFailed}).` : "None."}
               </Text>
