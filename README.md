@@ -164,7 +164,8 @@ repository. All of that is deployment configuration or an admin setting.
   Account page, so a program they run can read their days and add or change
   their *draft* hours without a browser. It's shown once and only its hash is
   kept; each has a name, a lifetime, and a "last used", and is revoked with one
-  tap (or with its person's deactivation). A token can't submit or take back a
+  tap (or with its person's deactivation). Admins see each person's tokens on
+  their page and can revoke one there, but can't make one for someone else. A token can't submit or take back a
   day, change hours already submitted, or reach any page — see "The agent API"
   below.
 - **Settings.** Admins name the app and pick its colour (the header, the browser tab,

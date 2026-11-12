@@ -23,6 +23,7 @@ let page: Page;
 let api: APIRequestContext;
 let token = "";
 let jobId = "";
+let userId = 0;
 const day = today("America/Los_Angeles");
 
 function op<T extends OpType>(type: T, payload: OpPayload<T>) {
@@ -113,7 +114,9 @@ test("without a valid token, the agent API answers 401", async () => {
 test("the token reads its person's day", async () => {
   const me = await api.get("/api/agent/me", { headers: auth() });
   expect(me.status()).toBe(200);
-  expect(await me.json()).toMatchObject({
+  const who = await me.json();
+  userId = who.user.id;
+  expect(who).toMatchObject({
     user: { name: "Token Owner" },
     token: { name: "E2E agent", scope: "drafts" },
     ops: ["entry.create", "entry.update", "rollup.commit"],
@@ -174,4 +177,29 @@ test("revoking it on the Account page stops it at once", async () => {
   await section.getByRole("button", { name: "Revoke token" }).click();
   await expect(section.getByText("No tokens.")).toBeVisible();
   expect((await api.get("/api/agent/me", { headers: auth() })).status()).toBe(401);
+});
+
+test("an admin sees a person's tokens on their page, and can revoke one there", async () => {
+  // A second token, made the person's own way.
+  await page.goto("/account");
+  const own = page.locator("#tokens");
+  await own.getByLabel("New token for").fill("Second agent");
+  await own.getByRole("button", { name: "Make token" }).click();
+  const dialog = page.getByRole("dialog", { name: "New token" });
+  const second = (await dialog.locator("pre, code").first().innerText()).trim();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  const secondAuth = { Authorization: `Bearer ${second}` };
+  expect((await api.get("/api/agent/me", { headers: secondAuth })).status()).toBe(200);
+
+  // The token owner here is an admin, so they see their own person page too.
+  await page.goto(`/admin/people/${userId}`);
+  const listed = page.locator("#tokens");
+  await expect(listed.getByText("Second agent")).toBeVisible();
+  await expect(listed.getByText(`lh_…${second.slice(-4)}`)).toBeVisible();
+  // No way to make one for someone else from here.
+  await expect(listed.getByRole("button", { name: "Make token" })).toHaveCount(0);
+  await listed.getByRole("button", { name: "Revoke" }).click();
+  await listed.getByRole("button", { name: "Revoke token" }).click();
+  await expect(listed.getByText("No tokens.")).toBeVisible();
+  expect((await api.get("/api/agent/me", { headers: secondAuth })).status()).toBe(401);
 });

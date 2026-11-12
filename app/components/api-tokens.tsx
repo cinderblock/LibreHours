@@ -47,13 +47,7 @@ export function ApiTokens({ tokens, action }: { tokens: ApiTokenView[]; action: 
 
   return (
     <Stack gap="sm">
-      {tokens.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          No tokens.
-        </Text>
-      ) : (
-        tokens.map((t) => <TokenRow key={t.id} token={t} action={action} />)
-      )}
+      <ApiTokenList tokens={tokens} action={action} />
 
       <Card withBorder>
         <create.Form method="post" action={action} key={formKey}>
@@ -82,6 +76,27 @@ export function ApiTokens({ tokens, action }: { tokens: ApiTokenView[]; action: 
       </Card>
 
       <TokenReveal revealed={revealed} onClose={() => setRevealed(null)} />
+    </Stack>
+  );
+}
+
+/**
+ * Live tokens, each with a revoke. Used on the person's own Account page and,
+ * for admins, on that person's page; the server checks who may revoke what.
+ */
+export function ApiTokenList({ tokens, action }: { tokens: ApiTokenView[]; action: string }) {
+  if (tokens.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No tokens.
+      </Text>
+    );
+  }
+  return (
+    <Stack gap="sm">
+      {tokens.map((t) => (
+        <TokenRow key={t.id} token={t} action={action} />
+      ))}
     </Stack>
   );
 }

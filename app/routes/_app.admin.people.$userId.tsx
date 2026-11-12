@@ -7,16 +7,18 @@ import { getCategory, setUserCategory } from "../../src/categories.ts";
 import { removeCredential, renameCredential } from "../../src/credentials.ts";
 import { formatDateTime } from "../../src/format.ts";
 import { LINK_LIFETIMES, mintRegistration } from "../../src/registrations.ts";
+import { revokeApiToken } from "../../src/api-tokens.ts";
 import { revokeAllSessions, revokeSession } from "../../src/sessions.ts";
 import { NAME_MAX_LENGTH } from "../../src/limits.ts";
 import { getUser, renameUser, updateUserAccess } from "../../src/users.ts";
 import { type ActionResult, handleForm, intField, lifetimeFrom, stringField } from "../actions.server.ts";
 import { categoryOptions } from "../admin.server.ts";
 import { requireAdmin } from "../auth.server.ts";
+import { ApiTokenList } from "../components/api-tokens.tsx";
 import { PasskeyList, SessionList } from "../components/credential-lists.tsx";
 import { LinkReveal, type RevealedLink } from "../components/link-reveal.tsx";
 import { useActionFeedback } from "../components/use-action-feedback.ts";
-import { passkeyViews, sessionViews } from "../views.server.ts";
+import { apiTokenViews, passkeyViews, sessionViews } from "../views.server.ts";
 import { pageTitle } from "../meta.ts";
 import type { Route } from "./+types/_app.admin.people.$userId";
 
@@ -60,6 +62,7 @@ export function loader({ request, context, params }: Route.LoaderArgs) {
     isMe: user.id === me.id,
     passkeys: passkeyViews(user.id),
     sessions: sessionViews(user.id, user.id === me.id ? session.id : null),
+    apiTokens: apiTokenViews(user.id),
     history: auditFor("user", user.id)
       .reverse()
       .slice(0, 20)
@@ -133,6 +136,10 @@ export async function action({ request, context, params }: Route.ActionArgs) {
       revokeSession({ ...target, id: stringField(form, "sessionId") });
       return { ok: true, message: "Signed that device out." };
     },
+    "revoke-token": (form) => {
+      revokeApiToken({ ...target, id: intField(form, "tokenId") });
+      return { ok: true, message: "Token revoked." };
+    },
     "revoke-sessions": () => {
       const n = revokeAllSessions({ ...target, exceptId: user.id === me.id ? session.id : undefined });
       return { ok: true, message: `Signed out ${n} device${n === 1 ? "" : "s"}.` };
@@ -141,7 +148,7 @@ export async function action({ request, context, params }: Route.ActionArgs) {
 }
 
 export default function Person({ loaderData }: Route.ComponentProps) {
-  const { person, isMe, passkeys, sessions, history, lifetimes, categories } = loaderData;
+  const { person, isMe, passkeys, sessions, apiTokens, history, lifetimes, categories } = loaderData;
 
   return (
     <Stack gap="xl" maw={640}>
@@ -191,6 +198,16 @@ export default function Person({ loaderData }: Route.ComponentProps) {
           action={`/admin/people/${person.id}`}
           revokeLabel={isMe ? "Sign out all your other devices" : "Sign out of every device"}
         />
+      </Stack>
+
+      <Stack gap="sm" id="tokens">
+        <Title order={3}>Tokens for scripts and agents</Title>
+        <Text size="sm" c="dimmed">
+          {isMe ? "You make" : `${person.name} makes`} these on {isMe ? "your" : "their"} own account page. Each lets a
+          program read {isMe ? "your" : "their"} days and add or change draft hours, nothing more. Revoke one that
+          shouldn't be there.
+        </Text>
+        <ApiTokenList tokens={apiTokens} action={`/admin/people/${person.id}`} />
       </Stack>
 
       <Stack gap="sm">
