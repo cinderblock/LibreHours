@@ -91,6 +91,10 @@ test("Report a problem: what the person says, a screenshot, and what the page kn
   // Something to find in the breadcrumbs.
   await page.getByRole("link", { name: "Your account" }).first().click();
   await expect(page).toHaveURL(/\/account$/);
+  // On screen, not just in the address bar: the router changes the URL before
+  // the page renders, and a press that leaves first abandons that render, so
+  // the page was never shown and the trail rightly doesn't list it.
+  await expect(page.getByRole("heading", { name: "Your account" })).toBeVisible();
   await page.getByRole("link", { name: "Track time" }).click();
   // The day itself, not its loading placeholder: its data goes in the report.
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
