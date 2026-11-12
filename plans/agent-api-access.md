@@ -53,6 +53,8 @@ permission classifier now blocks it outright.
   `opId`. The allowlist is checked *before* the ledger, so a token can't read
   back the stored result of an op type it isn't allowed.
 - Expiry chosen at creation: 30 days, 90 days, 1 year (default) or never.
+- The CLI is TypeScript run with Bun, not Python: Cameron prefers TypeScript (2026-11-11).
+- Cameron approved rewriting the skill's "Approving" section to use the CLI, after the deploy.
 - Any signed-in person can make tokens for themselves: a token can only do a
   subset of what they can already do on their phone.
 
@@ -77,15 +79,15 @@ missing, unknown, revoked, expired, or its person is deactivated.
 6. [x] Account page: list, create (shown once, copy), revoke.
 7. [x] README section; typecheck, unit tests, e2e for the token flow.
 8. [x] Local end-to-end: run the built server, make a token, drive it with the CLI.
-9. [x] CLI `qb-time/scripts/librehours.py` (`me`, `day`, `ops`), token from a
+9. [x] CLI `qb-time/scripts/librehours.ts` (Bun; `me`, `day`, `ops`), token from a
        local file outside git.
-10. [ ] **Current:** ask Cameron to push `agent-api-access` to master (builds the image, free: public repo).
-11. [ ] Stage the deploy in ops: `pin.json` image → `ghcr.io/cinderblock/librehours` (the repo
+10. [x] Push `agent-api-access` to master (builds the image, free: public repo).
+11. [ ] **Current:** stage the deploy in ops: `pin.json` image → `ghcr.io/cinderblock/librehours` (the repo
         rename moved it), new digest and commit. Show it; apply only on Cameron's yes.
 12. [ ] Cameron makes the production token (Account → Tokens for scripts and agents) and saves it to
-        `~/.config/librehours/token`. Check with `librehours.py me`.
-13. [ ] Ask Cameron before editing the `time-approve` skill; edit it only after the deploy, so it
-        never points at an API production doesn't have yet.
+        `~/.config/librehours/token`. Check with `bun librehours.ts me`.
+13. [ ] Edit the `time-approve` skill (approved) once the deploy is live, so it never points at an
+        API production doesn't have yet.
 
 ## Findings / gotchas
 
@@ -108,9 +110,10 @@ missing, unknown, revoked, expired, or its person is deactivated.
 - 2026-11-11: surveyed the code and the deploy; plan written.
 - 2026-11-11: feature committed (`566a457`). 538 unit tests and all 77 chromium e2e tests pass
   (new: `src/api-tokens.test.ts`, `e2e/tokens.spec.ts`). CLI
-  `~/git/playgrounds/qb-time/scripts/librehours.py` driven against a local built server on a
+  `~/git/playgrounds/qb-time/scripts/librehours.ts` driven against a local built server on a
   throwaway DB: me/day/ops, replay, local and server refusals; the token never appears in the
-  server log.
+  server log. Rewritten in TypeScript (Python version removed) and re-run the same way.
+- 2026-11-11: pushed to master (`da8f92d`) with Cameron's yes; Build image running.
 
 ## Open questions for the user
 
