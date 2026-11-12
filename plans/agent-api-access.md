@@ -105,6 +105,10 @@ missing, unknown, revoked, expired, or its person is deactivated.
 - After the rename to LibreHours, CI pushes `ghcr.io/cinderblock/librehours`; production's
   `pin.json` still names `ghcr.io/cinderblock/time-tracker`. Both pull anonymously (checked
   2026-11-11), so the pin bump changes the image name as well as the digest.
+- The heavier Account page made `bugs.spec.ts` "Report a problem" fail ~3 runs in 4 (the commit
+  before passed 4/4): the test pressed Track time once the URL said /account, before the page
+  rendered; React abandons that render, so no `nav /account` crumb. App behaviour is right (the page
+  was never shown); the test now waits for the page's heading. 5/5 clean after.
 - Bug-report breadcrumbs record only method, path and status, so a new token can't leak into a
   report through them.
 
@@ -127,12 +131,13 @@ missing, unknown, revoked, expired, or its person is deactivated.
   `day 2026-11-10` reads (0 entries, 83 jobs). Nothing written to production. Done.
 - 2026-11-11: `time-approve` skill's Approving section and hard rules rewritten to use
   `librehours.ts`; Chrome only appears as "don't fall back to it".
+- 2026-11-11: follow-up approved by Cameron: admin person page lists a person's tokens with Revoke
+  (no create). e2e covers it; full chromium suite 78/78. Fixed the bugs.spec race above.
 
 ## Open questions for the user
 
-1. Should admins see (and revoke) a person's tokens on the admin person page?
-   Deactivating someone already kills their tokens. Recommendation: yes, as a
-   follow-up.
+None open. (Admins seeing and revoking a person's tokens on their page: Cameron said yes, 2026-11-11;
+done. Admins can't make tokens for someone else.)
 
 ## Things not to do
 
