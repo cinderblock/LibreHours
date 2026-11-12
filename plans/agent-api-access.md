@@ -84,7 +84,7 @@ missing, unknown, revoked, expired, or its person is deactivated.
 10. [x] Push `agent-api-access` to master (builds the image, free: public repo).
 11. [x] Deploy in ops: `pin.json` image → `ghcr.io/cinderblock/librehours` (the repo
         rename moved it), new digest and commit. Show it; apply only on Cameron's yes.
-12. [ ] **Current:** Cameron makes the production token (Account → Tokens for scripts and agents) and saves it to
+12. [x] Cameron makes the production token (Account → Tokens for scripts and agents) and saves it to
         `~/.config/librehours/token`. Check with `bun librehours.ts me`.
 13. [x] Edit the `time-approve` skill (approved) once the deploy is live, so it never points at an
         API production doesn't have yet.
@@ -122,6 +122,9 @@ missing, unknown, revoked, expired, or its person is deactivated.
   `:latest` and its fast-forward of ops master is the deploy. Cameron said ship now; pinned by hand
   (ops `7f0b3f66`), Server Deploys run 43127138382 succeeded. Live: `/api/agent/me` → 401 JSON with
   `WWW-Authenticate: Bearer`.
+- 2026-11-11: production token "Claude Daily Hours" made by Cameron and saved (via a secret card,
+  never seen) to `~/.config/librehours/token`, ACL'd to his user. `librehours.ts me` names Cameron;
+  `day 2026-11-10` reads (0 entries, 83 jobs). Nothing written to production. Done.
 - 2026-11-11: `time-approve` skill's Approving section and hard rules rewritten to use
   `librehours.ts`; Chrome only appears as "don't fall back to it".
 
