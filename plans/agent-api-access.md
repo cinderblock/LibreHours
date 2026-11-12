@@ -82,11 +82,11 @@ missing, unknown, revoked, expired, or its person is deactivated.
 9. [x] CLI `qb-time/scripts/librehours.ts` (Bun; `me`, `day`, `ops`), token from a
        local file outside git.
 10. [x] Push `agent-api-access` to master (builds the image, free: public repo).
-11. [ ] **Current:** stage the deploy in ops: `pin.json` image → `ghcr.io/cinderblock/librehours` (the repo
+11. [x] Deploy in ops: `pin.json` image → `ghcr.io/cinderblock/librehours` (the repo
         rename moved it), new digest and commit. Show it; apply only on Cameron's yes.
-12. [ ] Cameron makes the production token (Account → Tokens for scripts and agents) and saves it to
+12. [ ] **Current:** Cameron makes the production token (Account → Tokens for scripts and agents) and saves it to
         `~/.config/librehours/token`. Check with `bun librehours.ts me`.
-13. [ ] Edit the `time-approve` skill (approved) once the deploy is live, so it never points at an
+13. [x] Edit the `time-approve` skill (approved) once the deploy is live, so it never points at an
         API production doesn't have yet.
 
 ## Findings / gotchas
@@ -99,6 +99,9 @@ missing, unknown, revoked, expired, or its person is deactivated.
 - `isEditable` includes `open` (running timers); token updates use `draft` only.
 - The e2e spec is `e2e/tokens.spec.ts`, not `agent-api.spec.ts`: spec files run alphabetically and
   `auth.spec.ts` must run first (it expects no admin yet).
+- **Pushing LibreHours master deploys it**, via ops Renovate (cron 4:00 AM PST / 12:00Z, and whenever
+  a `renovate/**` check finishes). There is no manual gate. The local ops checkout was 313 behind
+  and misled me; always read `origin/master` there.
 - After the rename to LibreHours, CI pushes `ghcr.io/cinderblock/librehours`; production's
   `pin.json` still names `ghcr.io/cinderblock/time-tracker`. Both pull anonymously (checked
   2026-11-11), so the pin bump changes the image name as well as the digest.
@@ -113,7 +116,14 @@ missing, unknown, revoked, expired, or its person is deactivated.
   `~/git/playgrounds/qb-time/scripts/librehours.ts` driven against a local built server on a
   throwaway DB: me/day/ops, replay, local and server refusals; the token never appears in the
   server log. Rewritten in TypeScript (Python version removed) and re-run the same way.
-- 2026-11-11: pushed to master (`da8f92d`) with Cameron's yes; Build image running.
+- 2026-11-11: pushed to master (`da8f92d`) with Cameron's yes; image built
+  (`sha256:91a54838…`, matches GHCR `:latest`).
+- 2026-11-11: **correction** — I'd told Cameron the push wouldn't deploy. Wrong: ops Renovate follows
+  `:latest` and its fast-forward of ops master is the deploy. Cameron said ship now; pinned by hand
+  (ops `7f0b3f66`), Server Deploys run 43127138382 succeeded. Live: `/api/agent/me` → 401 JSON with
+  `WWW-Authenticate: Bearer`.
+- 2026-11-11: `time-approve` skill's Approving section and hard rules rewritten to use
+  `librehours.ts`; Chrome only appears as "don't fall back to it".
 
 ## Open questions for the user
 
