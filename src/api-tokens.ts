@@ -14,10 +14,12 @@ import { type User, UserInputError, getUser } from "./users.ts";
  * A token is accepted only on /api/agent/* (app/agent-auth.server.ts), and only
  * for what its scope allows. There is one scope:
  *
- *   drafts — read the person's days, and add or change *draft* hours. It can't
- *            submit or take back a day, change hours already submitted (not
- *            even by adding to them, which would take them back), run timers,
- *            change notes, create jobs, or reach anything an admin page does.
+ *   drafts — read the person's days, add or change *draft* hours, and create
+ *            jobs to put them on (as any signed-in person can; with
+ *            accounting connected they start provisional). It can't submit or
+ *            take back a day, change hours already submitted (not even by
+ *            adding to them, which would take them back), run timers, change
+ *            notes, or reach anything an admin page does.
  */
 
 export const API_TOKEN_PREFIX = "lh_";
@@ -27,7 +29,7 @@ export type ApiTokenScope = (typeof API_TOKEN_SCOPES)[number];
 
 /** The ops each scope may send. Anything not listed is refused. */
 export const SCOPE_OPS: Record<ApiTokenScope, ReadonlySet<OpType>> = {
-  drafts: new Set<OpType>(["entry.create", "entry.update", "rollup.commit"]),
+  drafts: new Set<OpType>(["entry.create", "entry.update", "rollup.commit", "job.create"]),
 };
 
 /** Enough for every agent a person runs; more is more likely a leak than a need. */

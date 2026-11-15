@@ -57,6 +57,11 @@ permission classifier now blocks it outright.
 - Cameron approved rewriting the skill's "Approving" section to use the CLI, after the deploy.
 - Any signed-in person can make tokens for themselves: a token can only do a
   subset of what they can already do on their phone.
+- **2026-11-15: `job.create` joins the `drafts` scope.** Cameron: "Make the token have the job
+  create permissions" (the 11-14 time review needed a new TWILL website job). Any signed-in person
+  can already send `job.create`, so this stays a subset of what the person can do. Added to the
+  existing scope rather than a new one, so the production token gains it with no DB change or new
+  token. With accounting connected, new jobs start provisional, as from the app.
 
 ## API
 
@@ -133,6 +138,11 @@ missing, unknown, revoked, expired, or its person is deactivated.
   `librehours.ts`; Chrome only appears as "don't fall back to it".
 - 2026-11-11: follow-up approved by Cameron: admin person page lists a person's tokens with Revoke
   (no create). e2e covers it; full chromium suite 78/78. Fixed the bugs.spec race above.
+
+- 2026-11-15: `job.create` added to the `drafts` scope (branch `token-job-create`): scope list,
+  docs, README, Account page copy, unit test (token creates a job and books to it; duplicate name
+  still refused), e2e `/me` ops list. Typecheck clean, 539 unit tests and 78 chromium e2e pass.
+  Pushing master deploys it (ops Renovate), so the push waits on Cameron's yes.
 
 ## Open questions for the user
 

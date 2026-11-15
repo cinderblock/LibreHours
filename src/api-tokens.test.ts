@@ -5,6 +5,7 @@ import { API_TOKEN_LIFETIMES } from "./api-token-options.ts";
 import { MAX_LIVE_TOKENS, createApiToken, listApiTokens, resolveApiToken, revokeApiToken } from "./api-tokens.ts";
 import { db } from "./db.server.ts";
 import { getEntry, listEntriesForDate } from "./entries.ts";
+import { getJob } from "./jobs.ts";
 import { listNotesForDate } from "./notes.ts";
 import { applyOp } from "./ops.ts";
 import type { OpPayload, OpResult, OpType, Op } from "./ops-schema.ts";
@@ -177,6 +178,23 @@ describe("ops sent with a token", () => {
     expect(ledger).toEqual({ api_token_id: apiToken.id, device_id: `token:${apiToken.id}`, actor_user_id: userId });
   });
 
+  test("creates a job to put hours on, recorded against the token", () => {
+    const { token, apiToken } = makeToken();
+    const customer = getJob(jobA)!.parentId!;
+    const jobId = uuidv7();
+    ok(asToken(token, "job.create", { jobId, name: "Website", parentId: customer }));
+    expect(getJob(jobId)).toMatchObject({ name: "Website", parentId: customer });
+    ok(asToken(token, "entry.create", { entryId: uuidv7(), jobId, workDate: DAY, durationSeconds: 1800 }));
+    const ledger = db()
+      .query<{ api_token_id: number; device_id: string }, []>(
+        "SELECT api_token_id, device_id FROM applied_ops WHERE type = 'job.create' AND api_token_id IS NOT NULL",
+      )
+      .get()!;
+    expect(ledger).toEqual({ api_token_id: apiToken.id, device_id: `token:${apiToken.id}` });
+    // A name already taken under that customer is still refused.
+    refused(asToken(token, "job.create", { jobId: uuidv7(), name: "Website", parentId: customer }), "conflict");
+  });
+
   test("is idempotent by opId", () => {
     const { token } = makeToken();
     const opId = uuidv7();
@@ -197,7 +215,6 @@ describe("ops sent with a token", () => {
       op("day.unsubmit", { workDate: DAY }),
       op("entry.delete", { entryId, at: NINE }),
       op("timer.start", { entryId: uuidv7(), jobId: jobA, at: NINE }),
-      op("job.create", { jobId: uuidv7(), name: "Sneaky" }),
       op("note.create", { noteId: uuidv7(), at: NINE, text: "hi", jobId: jobA }),
       op("notes.leave_out", { noteIds: [uuidv7()], at: NINE }),
       op("duplicate.resolve", { entryId, action: "discard" }),

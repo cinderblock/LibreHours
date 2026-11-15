@@ -161,8 +161,8 @@ repository. All of that is deployment configuration or an admin setting.
   on a date, so a raise doesn't rewrite earlier work. Categories group people for
   filtering and rates. Weeks start on whichever day your payroll week does.
 - **Tokens for scripts and agents.** Anyone can make an API token on their
-  Account page, so a program they run can read their days and add or change
-  their *draft* hours without a browser. It's shown once and only its hash is
+  Account page, so a program they run can read their days, add or change
+  their *draft* hours, and add jobs to put them on, without a browser. It's shown once and only its hash is
   kept; each has a name, a lifetime, and a "last used", and is revoked with one
   tap (or with its person's deactivation). Admins see each person's tokens on
   their page and can revoke one there, but can't make one for someone else. A token can't submit or take back a
@@ -307,8 +307,10 @@ person is deactivated, is `401`.
   exactly as `/api/ops` is, through the same ledger: an `opId` sent twice is
   applied once.
 
-The one scope, `drafts`, allows `entry.create`, `entry.update` and
-`rollup.commit`; any other operation is refused `forbidden`. They're held to
+The one scope, `drafts`, allows `entry.create`, `entry.update`,
+`rollup.commit` and `job.create` (which any signed-in person can send; with
+accounting connected a new job starts provisional); any other operation is
+refused `forbidden`. They're held to
 draft hours as well: adding to a job whose hours that day are already
 submitted, which in the app takes them back first, is refused instead, and
 `entry.update` only changes drafts (not a running timer). The ledger records

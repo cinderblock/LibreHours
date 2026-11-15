@@ -119,7 +119,7 @@ test("the token reads its person's day", async () => {
   expect(who).toMatchObject({
     user: { name: "Token Owner" },
     token: { name: "E2E agent", scope: "drafts" },
-    ops: ["entry.create", "entry.update", "rollup.commit"],
+    ops: ["entry.create", "entry.update", "rollup.commit", "job.create"],
   });
 
   const res = await api.get(`/api/agent/day/${day}`, { headers: auth() });
