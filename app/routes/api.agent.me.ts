@@ -1,4 +1,4 @@
-import { SCOPE_OPS } from "../../src/api-tokens.ts";
+import { SCOPE_OPS, tokenJobSettings } from "../../src/api-tokens.ts";
 import { agentJson, requireApiToken } from "../agent-auth.server.ts";
 import type { Route } from "./+types/api.agent.me";
 
@@ -7,10 +7,13 @@ import type { Route } from "./+types/api.agent.me";
  * a script to check its token before doing anything with it.
  */
 export function loader({ request }: Route.LoaderArgs) {
-  const { apiToken, user } = requireApiToken(request);
+  const resolved = requireApiToken(request);
+  const { apiToken, user } = resolved;
   return agentJson({
     user: { id: user.id, name: user.name },
     token: { id: apiToken.id, name: apiToken.name, scope: apiToken.scope, expiresAt: apiToken.expiresAt },
     ops: [...SCOPE_OPS[apiToken.scope]],
+    // Job settings it may change at /api/agent/jobs/:id (none unless its person is an admin).
+    jobSettings: tokenJobSettings(resolved),
   });
 }

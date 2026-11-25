@@ -19,7 +19,11 @@ import { type User, UserInputError, getUser } from "./users.ts";
  *            accounting connected they start provisional). It can't submit or
  *            take back a day, change hours already submitted (not even by
  *            adding to them, which would take them back), run timers, change
- *            notes, or reach anything an admin page does.
+ *            notes, or reach anything else an admin page does.
+ *
+ *            One admin setting is open to it, and only when its person is an
+ *            admin: whether a job's time is billable (src/agent-jobs.ts). A
+ *            token never does what its person can't.
  */
 
 export const API_TOKEN_PREFIX = "lh_";
@@ -31,6 +35,20 @@ export type ApiTokenScope = (typeof API_TOKEN_SCOPES)[number];
 export const SCOPE_OPS: Record<ApiTokenScope, ReadonlySet<OpType>> = {
   drafts: new Set<OpType>(["entry.create", "entry.update", "rollup.commit", "job.create"]),
 };
+
+/**
+ * Job settings each scope may change, through POST /api/agent/jobs/:id, and
+ * then only for a person who could change them on the admin pages.
+ */
+export const SCOPE_JOB_SETTINGS: Record<ApiTokenScope, ReadonlySet<JobSetting>> = {
+  drafts: new Set<JobSetting>(["billable"]),
+};
+export type JobSetting = "billable";
+
+/** The job settings a token may change: its scope's, if its person is an admin; else none. */
+export function tokenJobSettings({ apiToken, user }: ResolvedApiToken): JobSetting[] {
+  return user.role === "admin" ? [...SCOPE_JOB_SETTINGS[apiToken.scope]] : [];
+}
 
 /** Enough for every agent a person runs; more is more likely a leak than a need. */
 export const MAX_LIVE_TOKENS = 20;

@@ -49,6 +49,7 @@ export default [
     route("me", "routes/api.agent.me.ts"),
     route("day/:date", "routes/api.agent.day.$date.ts"),
     route("ops", "routes/api.agent.ops.ts"),
+    route("jobs/:id", "routes/api.agent.jobs.$id.ts"),
   ]),
 
   // The QuickBooks Web Connector's SOAP endpoint and the support page its

@@ -135,7 +135,7 @@ export default function Account({ loaderData }: Route.ComponentProps) {
         <Title order={3}>Tokens for scripts and agents</Title>
         <Text size="sm" c="dimmed">
           A token lets a program you run read your days, add or change your draft hours, and add jobs to put them on, without signing in. It
-          can't submit a day, take one back, or change hours already submitted — that stays yours, in the app.
+          can't submit a day, take one back, or change hours already submitted — that stays yours, in the app. An admin's token can also say whether a job is billable.
         </Text>
         <ApiTokens tokens={apiTokens} action="/account" />
       </Stack>

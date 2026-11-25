@@ -286,6 +286,8 @@ export function updateJob(args: {
   /** Whether its time goes to the accounting system as billable; null follows the row above. */
   billable?: boolean | null;
   actorUserId: number;
+  /** Where the change came from, for the audit log (an API token's is `token:<id>`). */
+  deviceId?: string;
 }): Job {
   const job = getJob(args.id);
   if (!job || job.mergedInto) throw new UserInputError("That job no longer exists.");
@@ -338,6 +340,7 @@ export function updateJob(args: {
     action: "update",
     before: { name: job.name, active: job.active, requiresNote: job.requiresNote, takesTime: job.takesTime, billable: job.billable },
     after: { name, active, requiresNote, takesTime, billable },
+    deviceId: args.deviceId,
   });
   return getJob(job.id)!;
 }

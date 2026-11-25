@@ -1,4 +1,5 @@
 import { config } from "../../src/config.server.ts";
+import { listJobs } from "../../src/jobs.ts";
 import { WORK_DATE_PATTERN, addDays, today } from "../../src/time.ts";
 import { agentJson, requireApiToken } from "../agent-auth.server.ts";
 import { loadDay } from "../tracker.server.ts";
@@ -20,6 +21,7 @@ export function loader({ request, params }: Route.LoaderArgs) {
     return agentJson({ error: "That day hasn't happened yet.", code: "not_found" }, { status: 404 });
   }
   const day = loadDay(user.id, date);
+  const billed = new Map(listJobs().map((j) => [j.id, j.billed]));
   return agentJson({
     workDate: day.workDate,
     today: day.today,
@@ -27,8 +29,9 @@ export function loader({ request, params }: Route.LoaderArgs) {
     mode: day.mode,
     entries: day.entries,
     notes: day.notes,
-    // Open jobs only, as the day screen offers them. `bookable` says which take hours.
-    jobs: day.jobs,
+    // Open jobs only, as the day screen offers them. `bookable` says which take hours;
+    // `billed` whether their time goes to accounting as billable.
+    jobs: day.jobs.map((j) => ({ ...j, billed: billed.get(j.id)! })),
     // A running timer, wherever its day is.
     open: day.open,
     // Ids an op named that now stand for one of these lines (their time joined it).

@@ -62,6 +62,16 @@ permission classifier now blocks it outright.
   can already send `job.create`, so this stays a subset of what the person can do. Added to the
   existing scope rather than a new one, so the production token gains it with no DB change or new
   token. With accounting connected, new jobs start provisional, as from the app.
+- **2026-11-25: an admin's token can set a job's `billable`.** An agent booked a client's
+  non-billable intro meeting to a provisional job and had no way to mark it. Design:
+  `POST /api/agent/jobs/:id` `{ billable: true | false | null }`, not an op (a job setting isn't part
+  of a day, devices never send it, and it's idempotent by value, so no offline reducer, undo or
+  ledger changes). Allowed by the `drafts` scope (`SCOPE_JOB_SETTINGS`) **and** only when the
+  token's person is an admin, as the Jobs page requires; otherwise `403`. Nothing else about a job
+  is accepted (name, active, notes). Audited with device id `token:<id>`. `/me` lists
+  `jobSettings`; `day` jobs gain `billed`. No `billable` on `job.create`: create, then set.
+  Entry-level billable not needed for this (jobs carry it; `time_entries.billable` exists but
+  nothing sets it).
 
 ## API
 
@@ -143,6 +153,10 @@ missing, unknown, revoked, expired, or its person is deactivated.
   docs, README, Account page copy, unit test (token creates a job and books to it; duplicate name
   still refused), e2e `/me` ops list. Typecheck clean, 539 unit tests and 78 chromium e2e pass.
   Pushing master deploys it (ops Renovate), so the push waits on Cameron's yes.
+
+- 2026-11-25: admin token sets job billable (branch `agent-job-billable`): `src/agent-jobs.ts`,
+  route `api.agent.jobs.$id.ts`, unit tests `src/agent-jobs.test.ts`, e2e in `tokens.spec.ts`, README.
+  Typecheck clean, 543 unit tests and 79 chromium e2e pass (2 skipped).
 
 ## Open questions for the user
 

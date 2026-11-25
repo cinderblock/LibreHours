@@ -166,8 +166,8 @@ repository. All of that is deployment configuration or an admin setting.
   kept; each has a name, a lifetime, and a "last used", and is revoked with one
   tap (or with its person's deactivation). Admins see each person's tokens on
   their page and can revoke one there, but can't make one for someone else. A token can't submit or take back a
-  day, change hours already submitted, or reach any page — see "The agent API"
-  below.
+  day, change hours already submitted, or reach any page; an admin's token can
+  also say whether a job is billable — see "The agent API" below.
 - **Settings.** Admins name the app and pick its colour (the header, the browser tab,
   passkey prompts and the home-screen icon all follow), and choose the first day of
   the week, and whether submitted time waits for an admin to approve it.
@@ -298,14 +298,22 @@ reads that header. A missing, unknown, revoked or expired token, or one whose
 person is deactivated, is `401`.
 
 - `GET /api/agent/me` — the token's person, name, scope and expiry, and the
-  operations it may send. A cheap check that a token works.
+  operations it may send, and `jobSettings`: the job settings it may change
+  (`["billable"]` when its person is an admin, otherwise none). A cheap check
+  that a token works.
 - `GET /api/agent/day/YYYY-MM-DD` — that person's day: `workDate`, `today`,
   `timezone`, `entries` (each with its `status`), `notes`, `jobs` (open ones,
-  with `fullName` and `bookable`), `open` (a running timer) and `aliases`. The
+  with `fullName`, `bookable` and `billed`), `open` (a running timer) and `aliases`. The
   same model the day screen is drawn from.
 - `POST /api/agent/ops` — `{ ops: [...] }`, answered `{ results: [...] }`
   exactly as `/api/ops` is, through the same ledger: an `opId` sent twice is
   applied once.
+- `POST /api/agent/jobs/:id` — `{ billable: true | false | null }`: whether
+  time on that job or customer goes to accounting as billable (`null` follows
+  the row above), as on the admin Jobs page. Only for a token whose person is
+  an admin (`403 forbidden` otherwise); answered
+  `{ job: { id, fullName, billable, billed } }`. Audited with device id
+  `token:<id>`.
 
 The one scope, `drafts`, allows `entry.create`, `entry.update`,
 `rollup.commit` and `job.create` (which any signed-in person can send; with

@@ -120,6 +120,8 @@ test("the token reads its person's day", async () => {
     user: { name: "Token Owner" },
     token: { name: "E2E agent", scope: "drafts" },
     ops: ["entry.create", "entry.update", "rollup.commit", "job.create"],
+    // The token owner here is an admin.
+    jobSettings: ["billable"],
   });
 
   const res = await api.get(`/api/agent/day/${day}`, { headers: auth() });
@@ -156,6 +158,21 @@ test("the token adds draft hours, and can't submit them", async () => {
   // And it shows on the person's own day screen.
   await page.goto("/");
   await expect(page.getByText("From an agent")).toBeVisible();
+});
+
+test("an admin's token can mark a job not billable", async () => {
+  const set = await api.post(`/api/agent/jobs/${jobId}`, { headers: auth(), data: { billable: false } });
+  expect(set.status()).toBe(200);
+  expect((await set.json()).job).toMatchObject({ id: jobId, billable: false, billed: false });
+  const read = await (await api.get(`/api/agent/day/${day}`, { headers: auth() })).json();
+  expect(read.jobs.find((j: { id: string }) => j.id === jobId)).toMatchObject({ billed: false });
+
+  // Back to following its customer; nothing but `billable` is accepted.
+  const back = await api.post(`/api/agent/jobs/${jobId}`, { headers: auth(), data: { billable: null } });
+  expect((await back.json()).job).toMatchObject({ billable: null, billed: true });
+  const rename = await api.post(`/api/agent/jobs/${jobId}`, { headers: auth(), data: { billable: true, name: "x" } });
+  expect(rename.status()).toBe(400);
+  expect((await api.post(`/api/agent/jobs/${uuidv7()}`, { headers: auth(), data: { billable: false } })).status()).toBe(404);
 });
 
 test("the token works nowhere else", async () => {
